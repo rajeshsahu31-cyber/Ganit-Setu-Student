@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ganit Setu | विद्यार्थी लॉगिन</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body class="auth-page">
+  <main class="auth-card">
+    <div class="brand">
+      <div class="logo-mark">GS</div>
+      <div>
+        <h1>गणित सेतु</h1>
+        <p>पढ़ाई और परीक्षा की तैयारी का साथी</p>
+      </div>
+    </div>
+    <section class="form-box">
+      <h2>विद्यार्थी लॉगिन</h2>
+      <p class="muted">अपनी विद्यार्थी आईडी और पासवर्ड दर्ज करें</p>
+      <label>विद्यार्थी आईडी</label>
+      <input id="studentId" placeholder="उदाहरण: GS-00001">
+      <label>6 अंकों का पासवर्ड</label>
+      <input id="password" type="password" inputmode="numeric" maxlength="6" placeholder="••••••">
+      <button class="primary-btn" onclick="demoLogin()">लॉगिन करें</button>
+      <p class="center muted">नए विद्यार्थी हैं?</p>
+      <a class="outline-btn" href="register.html">रजिस्ट्रेशन करें</a>
+      <p class="demo-note">Demo देखने के लिए कोई भी ID और 6 अंक डालकर Login करें।</p>
+    </section>
+  </main>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

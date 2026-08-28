@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ganit Setu | रजिस्ट्रेशन</title>
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<header class="simple-header"><a href="index.html">← वापस</a><div class="mini-brand">GS गणित सेतु</div></header>
+<main class="page narrow">
+<section class="panel">
+<h1>विद्यार्थी रजिस्ट्रेशन</h1>
+<p class="muted">नीचे दी गई आवश्यक जानकारी भरें। विद्यालय की सही पहचान के लिए UDISE / DISE Code अनिवार्य है।</p>
+<form id="registrationForm" onsubmit="showRegistration(event)" class="registration-grid">
+<div><label>विद्यार्थी का नाम</label><input id="full_name" name="full_name" required placeholder="पूरा नाम"></div>
+<div><label>कक्षा</label><select id="class_level" name="class_level" required><option value="">कक्षा चुनें</option><option value="9">कक्षा 9</option><option value="10">कक्षा 10</option></select></div>
+<div><label>विद्यालय का नाम</label><input id="school_name" name="school_name" required placeholder="विद्यालय का नाम"></div>
+<div><label>UDISE / DISE Code</label><input id="school_dise_code" name="school_dise_code" inputmode="numeric" pattern="[0-9]{11}" maxlength="11" required placeholder="11 अंकों का UDISE Code"><small class="field-help">विद्यालय की पहचान इसी Code से होगी</small></div>
+<div><label>गाँव / शहर</label><input id="village_city" name="village_city" required placeholder="गाँव या शहर"></div>
+<div><label>ब्लॉक</label><input id="block" name="block" required placeholder="ब्लॉक"></div>
+<div><label>जिला</label><input id="district" name="district" required placeholder="जिला"></div>
+<div><label>राज्य</label><input id="state" name="state" value="मध्य प्रदेश" required></div>
+<div class="full"><label>मोबाइल नंबर</label><input id="mobile" name="mobile" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" required placeholder="10 अंकों का मोबाइल नंबर"></div>
+<button class="primary-btn full" type="submit">रजिस्ट्रेशन पूरा करें</button>
+</form>
+<div id="registrationResult"></div>
+</section>
+</main>
+<script src="assets/js/supabase.js"></script>
+<script src="assets/js/app.js"></script>
+</body></html>

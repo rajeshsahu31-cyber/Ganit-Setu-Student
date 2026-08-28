@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>गणित सेतु | विद्यार्थी होम</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/home.css">
+</head>
+<body>
+
+<header class="gs-header">
+  <div class="gs-brand">
+    <div class="gs-logo"><img src="assets/images/ganit-setu-logo.webp" alt="गणित सेतु Logo"></div>
+    <div>
+      <strong>गणित सेतु</strong>
+      <small>सीखें • अभ्यास करें • आगे बढ़ें</small>
+    </div>
+  </div>
+</header>
+
+<main class="home-container">
+
+  <!-- केवल एक Welcome सेक्शन -->
+  <section class="welcome-card">
+    <div>
+      <span>WELCOME</span>
+      <h2>नमस्ते, <b id="studentNameTop">राजेश</b> 👋</h2>
+      <p>गणित सीखें, अभ्यास करें और आगे बढ़ें</p>
+    </div>
+    <div class="welcome-badge"><img src="assets/images/ganit-setu-logo.webp" alt="गणित सेतु Logo"></div>
+  </section>
+
+  <!-- विद्यार्थी की प्रोफाइल -->
+  <section class="student-profile-card">
+    <div class="student-photo" id="studentPhoto">RS</div>
+
+    <div class="student-details">
+      <p class="profile-label">मेरी प्रोफाइल</p>
+      <h1 id="studentName">राजेश साहू</h1>
+      <div class="student-meta">
+        <span>🆔 <b id="studentId">GS-00001</b></span>
+        <span>📚 <b id="studentClass">कक्षा 10वीं</b></span>
+        <span>🏫 <b id="schoolName">मेरा विद्यालय</b></span>
+      </div>
+    </div>
+
+    <div class="my-rank-box">
+      <small>मेरी रैंक</small>
+      <strong id="myRank">#12</strong>
+    </div>
+  </section>
+
+  <!-- लीडरबोर्ड -->
+  <section class="leaderboard-section">
+    <div class="section-title">
+      <div>
+        <p id="testDateText">कल की परीक्षा का सर्वश्रेष्ठ प्रदर्शन</p>
+        <h2>🏆 लीडरबोर्ड</h2>
+      </div>
+      <a href="leaderboard.html">पूरा देखें →</a>
+    </div>
+
+    <div class="top-three" id="topThree"></div>
+
+    <div class="winner-slider">
+      <div class="slider-title">
+        <span>Top 10 विजेता</span>
+        <small>Rank 4 से 10 • स्वतः स्क्रॉल</small>
+      </div>
+      <div class="winner-track" id="winnerTrack"></div>
+    </div>
+  </section>
+
+  <!-- तीन मुख्य बटन -->
+  <section class="main-actions">
+    <a class="main-action test-btn" href="test-types.html">
+      <span>📝</span>
+      <div><b>टेस्ट दें</b><small>अभ्यास और परीक्षा</small></div>
+    </a>
+
+    <a class="main-action result-btn" href="results.html">
+      <span>📊</span>
+      <div><b>मेरे परिणाम</b><small>अपनी प्रगति देखें</small></div>
+    </a>
+
+    <a class="main-action winner-btn" href="leaderboard.html">
+      <span>🏆</span>
+      <div><b>विजेता सूची</b><small>Top विद्यार्थियों को देखें</small></div>
+    </a>
+  </section>
+
+</main>
+
+<script src="assets/js/home.js"></script>
+<script src="assets/js/profile.js"></script>
+<script src="assets/js/leaderboard-home.js"></script>
+</body>
+</html>
