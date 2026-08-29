@@ -1,115 +1,164 @@
-function demoLogin(){
- const id=document.getElementById('studentId').value.trim();
- const pass=document.getElementById('password').value.trim();
- if(!id || pass.length!==6){alert('कृपया विद्यार्थी आईडी और 6 अंकों का पासवर्ड दर्ज करें।');return;}
- location.href='home.html';
+function getValue(id){
+  return document.getElementById(id)?.value.trim() || '';
 }
 
-function onlyDigits(value){ return String(value || '').replace(/\D/g,''); }
-
-function setRegistrationMessage(type, message){
- const box=document.getElementById('registrationResult');
- if(!box) return;
- const cls=type==='success'?'success-box':(type==='info'?'info-box':'error-box');
- box.innerHTML='<div class="'+cls+'">'+message+'</div>';
+function syntheticEmail(studentId){
+  return studentId.trim().toLowerCase() + '@student.ganitsetu.app';
 }
 
-function escapeHtml(value){
- return String(value==null?'':value)
-  .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-  .replace(/>/g,'&gt;').replace(/"/g,'&quot;')
-  .replace(/'/g,'&#039;');
+function makePassword(){
+  return String(Math.floor(100000 + Math.random() * 900000));
 }
 
-async function supabaseInsertStudent(studentData){
- const cfg=window.getGanitSetuSupabase && window.getGanitSetuSupabase();
- if(!cfg || !cfg.ok) throw new Error((cfg && cfg.error) || 'Supabase configuration उपलब्ध नहीं है।');
+async function demoLogin(){
+  const id=getValue('studentId').toUpperCase();
+  const pass=getValue('password');
 
- const endpoint=cfg.url+'/rest/v1/'+encodeURIComponent(cfg.table);
- const response=await fetch(endpoint,{
-   method:'POST',
-   headers:{
-     'apikey':cfg.anonKey,
-     'Authorization':'Bearer '+cfg.anonKey,
-     'Content-Type':'application/json',
-     'Prefer':'return=representation'
-   },
-   body:JSON.stringify(studentData)
- });
+  if(!/^GS-\d{5,}$/.test(id)){
+    alert('कृपया सही विद्यार्थी आईडी दर्ज करें। उदाहरण: GS-00001');
+    return;
+  }
+  if(!/^\d{6}$/.test(pass)){
+    alert('कृपया 6 अंकों का पासवर्ड दर्ज करें।');
+    return;
+  }
 
- const raw=await response.text();
- let data=null;
- try{ data=raw ? JSON.parse(raw) : null; }catch(_){}
+  const button=document.querySelector('.primary-btn');
+  const oldText=button?.textContent;
+  if(button){button.disabled=true;button.textContent='लॉगिन हो रहा है...';}
 
- if(!response.ok){
-   const err=new Error((data && (data.message || data.details || data.hint)) || raw || ('HTTP '+response.status));
-   err.code=data && data.code;
-   throw err;
- }
- return data;
+  const {error}=await supabaseClient.auth.signInWithPassword({
+    email: syntheticEmail(id),
+    password: pass
+  });
+
+  if(button){button.disabled=false;button.textContent=oldText||'लॉगिन करें';}
+
+  if(error){
+    alert('विद्यार्थी आईडी या पासवर्ड गलत है।');
+    return;
+  }
+
+  location.href='home.html';
 }
 
 async function showRegistration(e){
- e.preventDefault();
+  e.preventDefault();
 
- const form=document.getElementById('registrationForm');
- const button=form.querySelector('button[type="submit"]');
- const dise=onlyDigits(form.school_dise_code.value);
- const mobile=onlyDigits(form.mobile.value);
+  const result=document.getElementById('registrationResult');
+  const button=document.getElementById('registerBtn');
 
- if(dise.length!==11){
-   alert('कृपया 11 अंकों का सही UDISE / DISE Code दर्ज करें।');
-   form.school_dise_code.focus();
-   return;
- }
- if(mobile.length!==10){
-   alert('कृपया 10 अंकों का सही मोबाइल नंबर दर्ज करें।');
-   form.mobile.focus();
-   return;
- }
+  const fullName=getValue('fullName').toUpperCase();
+  const classLevel=Number(document.getElementById('classLevel').value);
+  const schoolName=getValue('schoolName').toUpperCase();
+  const schoolDiseCode=getValue('schoolDiseCode').replace(/\D/g,'').slice(0,11);
+  const villageCity=getValue('villageCity').toUpperCase();
+  const block=getValue('block').toUpperCase();
+  const district=getValue('district').toUpperCase();
+  const state=(getValue('state') || 'MADHYA PRADESH').toUpperCase();
+  const mobile=getValue('mobile').replace(/\D/g,'').slice(0,10);
+  const password=getValue('studentPassword').replace(/\D/g,'').slice(0,6);
 
- // student_id नहीं भेजा जा रहा है: Supabase trigger इसे GS-00001 format में अपने आप बनाएगा.
- const studentData={
-   full_name:form.full_name.value.trim(),
-   class_level:String(form.class_level.value),
-   school_name:form.school_name.value.trim(),
-   village_city:form.village_city.value.trim(),
-   block:form.block.value.trim(),
-   district:form.district.value.trim(),
-   state:form.state.value.trim(),
-   mobile:mobile
- };
+  if(!/^[6-9]\d{9}$/.test(mobile)){
+    result.innerHTML='<div class="error-box">कृपया सही 10 अंकों का मोबाइल नंबर दर्ज करें।</div>';
+    return;
+  }
+  if(!/^\d{11}$/.test(schoolDiseCode)){
+    result.innerHTML='<div class="error-box">कृपया सही 11 अंकों का UDISE / DISE कोड दर्ज करें।</div>';
+    return;
+  }
+  if(!/^\d{6}$/.test(password)){
+    result.innerHTML='<div class="error-box">पासवर्ड केवल 6 अंकों का होना चाहिए।</div>';
+    return;
+  }
+  if(classLevel!==9 && classLevel!==10){
+    result.innerHTML='<div class="error-box">कृपया कक्षा 9 या 10 चुनें।</div>';
+    return;
+  }
 
- button.disabled=true;
- const oldText=button.textContent;
- button.textContent='Supabase में सेव हो रहा है...';
- setRegistrationMessage('info','<b>⏳ कृपया प्रतीक्षा करें...</b><br>विद्यार्थी की जानकारी वास्तविक Supabase <b>students</b> table में भेजी जा रही है।');
+  button.disabled=true;
+  button.textContent='रजिस्ट्रेशन हो रहा है...';
+  result.innerHTML='';
 
- try{
-   const saved=await supabaseInsertStudent(studentData);
-   const row=Array.isArray(saved) ? saved[0] : saved;
-   const studentId=row && row.student_id ? '<br>विद्यार्थी ID: <b>'+escapeHtml(row.student_id)+'</b>' : '';
+  // कोई Email और कोई Supabase Auth signUp नहीं।
+  // Registration सीधे सुरक्षित database function से होगा।
+  const {data,error}=await supabaseClient.rpc('register_student',{
+    p_full_name:fullName,
+    p_class_level:classLevel,
+    p_school_name:schoolName,
+    p_school_dise_code:schoolDiseCode,
+    p_village_city:villageCity,
+    p_block:block,
+    p_district:district,
+    p_state:state,
+    p_mobile:mobile,
+    p_password:password
+  });
 
-   setRegistrationMessage(
-     'success',
-     '<b>✓ रजिस्ट्रेशन सफलतापूर्वक Supabase में सेव हो गया है</b><br><br>'+
-     'विद्यालय UDISE Code: <b>'+escapeHtml(dise)+'</b>'+studentId+
-     '<br><small>मुख्य विद्यार्थी जानकारी वास्तविक <b>students</b> table में insert हो गई है।</small>'
-   );
+  button.disabled=false;
+  button.textContent='रजिस्ट्रेशन पूरा करें';
 
-   localStorage.setItem('ganitSetuLastRegistration',JSON.stringify(row || studentData));
-   form.reset();
-   form.state.value='मध्य प्रदेश';
- }catch(err){
-   console.error('Supabase registration error:',err);
-   const rawMessage=String(err && err.message || 'Unknown error');
-   setRegistrationMessage(
-     'error',
-     '<b>✕ Supabase में डेटा सेव नहीं हुआ</b><br><br>'+
-     '<small><b>असल Error:</b> '+escapeHtml(rawMessage)+'</small>'
-   );
- }finally{
-   button.disabled=false;
-   button.textContent=oldText;
- }
+  if(error){
+    const msg=error.message || 'रजिस्ट्रेशन नहीं हो सका।';
+    const code=error.code || '';
+    const lower=msg.toLowerCase();
+
+    // केवल वास्तविक duplicate mobile error को ही duplicate registration दिखाएं।
+    // RPC/function/configuration errors को गलती से duplicate mobile नहीं दिखाया जाएगा।
+    const isDuplicateMobile =
+      code === '23505' ||
+      lower.includes('mobile already registered') ||
+      lower.includes('students_mobile_key') ||
+      lower.includes('duplicate key value violates unique constraint');
+
+    if(isDuplicateMobile){
+      result.innerHTML='<div class="error-box">इस मोबाइल नंबर से पहले ही रजिस्ट्रेशन हो चुका है।</div>';
+    }else{
+      result.innerHTML='<div class="error-box"><b>रजिस्ट्रेशन नहीं हो सका।</b><br>'+msg+'</div>';
+    }
+    return;
+  }
+
+  const studentId=Array.isArray(data) && data.length ? data[0].student_id : '';
+  result.innerHTML='<div class="success-box"><b>✓ रजिस्ट्रेशन सफल</b><br><br>आपकी विद्यार्थी आईडी: <b>'+studentId+'</b><br><br><small>अपना 6 अंकों का पासवर्ड याद रखें।</small></div>';
+
+  document.getElementById('registrationForm').reset();
+  document.getElementById('state').value='MADHYA PRADESH';
 }
+
+// Registration fields की live validation: जितने अंक चाहिए उतने ही भरने दें
+document.addEventListener('input', (e) => {
+  const el=e.target;
+  if(el.classList && el.classList.contains('uppercase-field')){
+    el.value=el.value.toUpperCase();
+  }
+  if(el.id==='mobile'){
+    el.value=el.value.replace(/\D/g,'').slice(0,10);
+  }
+  if(el.id==='schoolDiseCode'){
+    el.value=el.value.replace(/\D/g,'').slice(0,11);
+  }
+  if(el.id==='studentPassword'){
+    el.value=el.value.replace(/\D/g,'').slice(0,6);
+  }
+});
+
+/* =========================================================
+   PAGE EVENT CONNECTION
+   Registration form को reload होने से रोककर showRegistration()
+   से Supabase registration चलाता है.
+   ========================================================= */
+document.addEventListener('DOMContentLoaded', () => {
+  const registrationForm = document.getElementById('registrationForm');
+  if (registrationForm) {
+    registrationForm.addEventListener('submit', showRegistration);
+  }
+
+  const loginForm = document.getElementById('loginForm');
+  if (loginForm) {
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      demoLogin();
+    });
+  }
+});
