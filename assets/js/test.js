@@ -1,704 +1,356 @@
 // ============================================
-// GANIT SETU ADMIN - QUESTION MANAGEMENT
-// Supabase configuration copied from working Student Panel
+// GANIT SETU STUDENT - TEST SYSTEM
+// Corrected Student Panel version
 // ============================================
+// IMPORTANT:
+// यह Student Panel की test.js है.
+// इसमें Admin Bulk Upload code नहीं होना चाहिए.
 
-const SUPABASE_URL = "https://cbgojvnbkosdehvwerth.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_a5XOePzNSNn72WQm_xrIAQ_cj5Z01W_";
+const $ = (id) => document.getElementById(id);
 
-const supabaseClient = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY
-);
-
-const $ = id => document.getElementById(id);
-
-function maxChapterForClass(classLevel){
+function maxChapterForClass(classLevel) {
   return Number(classLevel) === 9 ? 12 : 14;
 }
 
-function showMessage(text, type='success'){
-  $('questionMessage').innerHTML =
-    `<div class="${type === 'error' ? 'error-box' : 'success-box'}">${text}</div>`;
+function escapeHtml(value = '') {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
 }
 
-function fillChapters(){
-  const classLevel = Number($('classLevel').value);
-  const max = maxChapterForClass(classLevel);
-  const select = $('chapterNumber');
-  const old = Number(select.value) || 1;
+let currentStudent = null;
+let currentClassLevel = null;
+let courseQuestions = [];
+let currentQuestionIndex = 0;
+let selectedOption = null;
+let testStartedAt = null;
+let timerInterval = null;
 
-  select.innerHTML = '';
-  for(let i=1;i<=max;i++){
+async function loadStudentForCourse() {
+  // Home/Profile page यह value पहले से save करता है.
+  const savedClass = Number(sessionStorage.getItem('ganit_setu_student_class'));
+
+  if ([9, 10].includes(savedClass)) {
+    currentClassLevel = savedClass;
+  }
+
+  const studentId = sessionStorage.getItem('ganit_setu_student_id');
+
+  // अगर Supabase connection उपलब्ध है तो class को database से भी verify करें.
+  if (studentId && typeof supabaseClient !== 'undefined') {
+    try {
+      const { data, error } = await supabaseClient
+        .from('students')
+        .select('id,student_id,full_name,class_level')
+        .eq('student_id', studentId)
+        .maybeSingle();
+
+      if (!error && data) {
+        currentStudent = data;
+        currentClassLevel = Number(data.class_level);
+        sessionStorage.setItem('ganit_setu_student_class', String(currentClassLevel));
+      }
+    } catch (e) {
+      // Saved class से dropdown फिर भी चलेगा.
+      console.warn('Student verification skipped:', e);
+    }
+  }
+}
+
+function fillCourseChapters() {
+  const select = $('chapterTo');
+  if (!select) return;
+
+  // Class 9 = 12 chapters, Class 10 = 14 chapters
+  if (![9, 10].includes(Number(currentClassLevel))) {
+    select.innerHTML = '<option value="">अध्याय चुनें</option>';
+    return;
+  }
+
+  const max = maxChapterForClass(currentClassLevel);
+  select.innerHTML = '<option value="">अध्याय चुनें</option>';
+
+  for (let i = 1; i <= max; i++) {
     const option = document.createElement('option');
-    option.value = i;
+    option.value = String(i);
     option.textContent = `अध्याय ${i}`;
     select.appendChild(option);
   }
-  select.value = Math.min(old, max);
-  updateChapterName();
 }
 
-function updateChapterName(){
-  const chapter = $('chapterNumber').value || 1;
-  $('chapterName').value = `अध्याय ${chapter}`;
+function showCourseMessage(message, type = 'error') {
+  const box = $('courseMessage');
+  if (!box) return;
+
+  box.innerHTML =
+    `<div class="${type === 'error' ? 'error-box' : 'success-box'}">${escapeHtml(message)}</div>`;
 }
 
-async function loadQuestions(){
-  const classLevel = Number($('classLevel').value);
-  const chapterNumber = Number($('chapterNumber').value);
+async function setupCoursePage() {
+  await loadStudentForCourse();
 
-  $('questionList').innerHTML = '<tr><td colspan="5">लोड हो रहा है...</td></tr>';
+  const info = $('studentClassInfo');
 
-  const {data, error} = await supabaseClient
-    .from('questions')
-    .select('id,question_text,correct_option,status,created_at')
-    .eq('class_level', classLevel)
-    .eq('chapter_number', chapterNumber)
-    .order('id', {ascending:true});
-
-  if(error){
-    $('questionList').innerHTML =
-      `<tr><td colspan="5">Error: ${error.message}</td></tr>`;
-    $('questionCount').textContent = 'Questions load नहीं हुए';
+  if (![9, 10].includes(Number(currentClassLevel))) {
+    if (info) {
+      info.textContent = 'आपकी कक्षा की जानकारी नहीं मिल सकी। कृपया Home Page से दोबारा Test खोलें।';
+    }
+    showCourseMessage('कक्षा की जानकारी नहीं मिली। कृपया दोबारा Login करें।');
     return;
   }
 
-  $('questionCount').textContent =
-    `कक्षा ${classLevel} • अध्याय ${chapterNumber} • कुल ${data.length} Questions`;
+  if (info) {
+    const name = currentStudent?.full_name
+      || sessionStorage.getItem('ganit_setu_student_name')
+      || '';
 
-  if(!data.length){
-    $('questionList').innerHTML =
-      '<tr><td colspan="5">इस अध्याय में अभी कोई Question नहीं है।</td></tr>';
+    info.textContent =
+      `${name ? name + ' • ' : ''}कक्षा ${currentClassLevel} • कुल ${maxChapterForClass(currentClassLevel)} अध्याय`;
+  }
+
+  // यह dropdown हमेशा fixed chapter count से बनेगा.
+  // Questions database में हों या न हों, list दिखाई देगी.
+  fillCourseChapters();
+
+  const startBtn = $('startCourseBtn');
+  if (startBtn) {
+    startBtn.addEventListener('click', startCourseTest);
+  }
+}
+
+async function startCourseTest() {
+  const chapterTo = Number($('chapterTo')?.value);
+
+  if (!chapterTo) {
+    showCourseMessage('कृपया अध्याय चुनें।');
     return;
   }
 
-  $('questionList').innerHTML = data.map((q,i)=>`
-    <tr>
-      <td>${i+1}</td>
-      <td>${escapeHtml(q.question_text)}</td>
-      <td>${q.correct_option}</td>
-      <td>${q.status}</td>
-      <td><button class="action-btn danger" onclick="deleteQuestion(${q.id})">Delete</button></td>
-    </tr>
-  `).join('');
+  if (![9, 10].includes(Number(currentClassLevel))) {
+    showCourseMessage('कक्षा की जानकारी उपलब्ध नहीं है।');
+    return;
+  }
+
+  if (typeof supabaseClient === 'undefined') {
+    showCourseMessage('Supabase connection उपलब्ध नहीं है।');
+    return;
+  }
+
+  const startBtn = $('startCourseBtn');
+  startBtn.disabled = true;
+  startBtn.textContent = 'प्रश्न लोड हो रहे हैं...';
+
+  const messageBox = $('courseMessage');
+  if (messageBox) messageBox.innerHTML = '';
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('questions')
+      .select('id,class_level,chapter_number,chapter_name,question_text,option_a,option_b,option_c,option_d,correct_option,explanation')
+      .eq('class_level', Number(currentClassLevel))
+      .eq('status', 'active')
+      .lte('chapter_number', chapterTo)
+      .order('chapter_number', { ascending: true })
+      .order('id', { ascending: true });
+
+    if (error) throw error;
+
+    // हर चुने गए अध्याय से अधिकतम 10 Questions.
+    // उदाहरण: अध्याय 1 से 5 = 50 Questions.
+    const byChapter = new Map();
+
+    (data || []).forEach(q => {
+      const chapter = Number(q.chapter_number);
+      if (!byChapter.has(chapter)) byChapter.set(chapter, []);
+      byChapter.get(chapter).push(q);
+    });
+
+    const selected = [];
+
+    for (let chapter = 1; chapter <= chapterTo; chapter++) {
+      const list = byChapter.get(chapter) || [];
+      selected.push(...list.slice(0, 10));
+    }
+
+    if (!selected.length) {
+      showCourseMessage('चुने गए अध्यायों में अभी कोई Question उपलब्ध नहीं है।');
+      return;
+    }
+
+    courseQuestions = selected;
+    currentQuestionIndex = 0;
+    selectedOption = null;
+    testStartedAt = Date.now();
+
+    $('courseSetup').style.display = 'none';
+    $('courseTest').style.display = 'block';
+
+    $('testClass').textContent =
+      `कक्षा ${currentClassLevel} • अध्याय 1 से ${chapterTo}`;
+
+    $('questionCount').textContent =
+      `कुल ${courseQuestions.length} प्रश्न`;
+
+    sessionStorage.removeItem('ganit_setu_course_answers');
+
+    renderCourseQuestion();
+    startTimer();
+
+  } catch (err) {
+    showCourseMessage('Questions load नहीं हुए: ' + (err.message || 'Unknown error'));
+  } finally {
+    startBtn.disabled = false;
+    startBtn.textContent = 'टेस्ट शुरू करें';
+  }
 }
 
-function escapeHtml(value=''){
-  return String(value)
-    .replaceAll('&','&amp;')
-    .replaceAll('<','&lt;')
-    .replaceAll('>','&gt;')
-    .replaceAll('"','&quot;')
-    .replaceAll("'","&#039;");
+function renderCourseQuestion() {
+  const q = courseQuestions[currentQuestionIndex];
+  if (!q) return;
+
+  selectedOption = null;
+
+  $('questionNo').textContent =
+    `प्रश्न ${currentQuestionIndex + 1} / ${courseQuestions.length}`;
+
+  $('questionText').innerHTML =
+    `<div class="chapter-label">अध्याय ${escapeHtml(q.chapter_number)}: ${escapeHtml(q.chapter_name || '')}</div>` +
+    `<div>${escapeHtml(q.question_text)}</div>`;
+
+  const options = [
+    ['A', q.option_a],
+    ['B', q.option_b],
+    ['C', q.option_c],
+    ['D', q.option_d]
+  ];
+
+  $('options').innerHTML = options.map(([key, value]) =>
+    `<button type="button" data-option="${key}" class="option-btn"><b>${key}.</b> ${escapeHtml(value)}</button>`
+  ).join('');
+
+  $('options').querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      $('options').querySelectorAll('button')
+        .forEach(b => b.classList.remove('selected'));
+
+      btn.classList.add('selected');
+      selectedOption = btn.dataset.option;
+    });
+  });
+
+  $('nextQuestion').textContent =
+    currentQuestionIndex === courseQuestions.length - 1
+      ? 'टेस्ट Submit करें'
+      : 'अगला प्रश्न →';
+
+  $('nextQuestion').onclick = nextCourseQuestion;
 }
 
-async function saveQuestion(event){
-  event.preventDefault();
+function nextCourseQuestion() {
+  if (!selectedOption) {
+    alert('कृपया एक विकल्प चुनें।');
+    return;
+  }
 
-  const btn = $('saveQuestionBtn');
-  btn.disabled = true;
-  btn.textContent = 'Save हो रहा है...';
+  const answers =
+    JSON.parse(sessionStorage.getItem('ganit_setu_course_answers') || '[]');
 
-  const payload = {
-    class_level: Number($('classLevel').value),
-    subject: 'Mathematics',
-    chapter_number: Number($('chapterNumber').value),
-    chapter_name: $('chapterName').value.trim() || `अध्याय ${$('chapterNumber').value}`,
-    question_text: $('questionText').value.trim(),
-    option_a: $('optionA').value.trim(),
-    option_b: $('optionB').value.trim(),
-    option_c: $('optionC').value.trim(),
-    option_d: $('optionD').value.trim(),
-    correct_option: $('correctOption').value,
-    explanation: $('explanation').value.trim() || null,
-    marks: 1,
-    difficulty: $('difficulty').value,
-    status: 'active'
+  answers[currentQuestionIndex] = selectedOption;
+
+  sessionStorage.setItem(
+    'ganit_setu_course_answers',
+    JSON.stringify(answers)
+  );
+
+  if (currentQuestionIndex < courseQuestions.length - 1) {
+    currentQuestionIndex++;
+    renderCourseQuestion();
+    return;
+  }
+
+  finishCourseTest();
+}
+
+function startTimer() {
+  const timer = $('timer');
+  if (!timer) return;
+
+  clearInterval(timerInterval);
+
+  const update = () => {
+    const seconds = Math.floor((Date.now() - testStartedAt) / 1000);
+    const mm = String(Math.floor(seconds / 60)).padStart(2, '0');
+    const ss = String(seconds % 60).padStart(2, '0');
+
+    timer.textContent = `⏱️ ${mm}:${ss}`;
   };
 
-  const {error} = await supabaseClient
-    .from('questions')
-    .insert(payload);
-
-  btn.disabled = false;
-  btn.textContent = '💾 प्रश्न Save करें';
-
-  if(error){
-    showMessage('Question Save नहीं हुआ: ' + error.message, 'error');
-    return;
-  }
-
-  showMessage('✓ Question सफलतापूर्वक Supabase में Save हो गया।');
-  $('questionText').value='';
-  $('optionA').value='';
-  $('optionB').value='';
-  $('optionC').value='';
-  $('optionD').value='';
-  $('explanation').value='';
-  $('correctOption').value='A';
-  $('difficulty').value='medium';
-  await loadQuestions();
+  update();
+  timerInterval = setInterval(update, 1000);
 }
 
-async function deleteQuestion(id){
-  if(!confirm('क्या आप यह Question Delete करना चाहते हैं?')) return;
+function finishCourseTest() {
+  clearInterval(timerInterval);
 
-  const {error} = await supabaseClient
-    .from('questions')
-    .delete()
-    .eq('id', id);
+  const answers =
+    JSON.parse(sessionStorage.getItem('ganit_setu_course_answers') || '[]');
 
-  if(error){
-    showMessage('Delete नहीं हुआ: ' + error.message, 'error');
-    return;
-  }
+  let correct = 0;
 
-  showMessage('✓ Question Delete हो गया।');
-  await loadQuestions();
-}
-
-window.deleteQuestion = deleteQuestion;
-
-document.addEventListener('DOMContentLoaded', ()=>{
-  $('classLevel').addEventListener('change', ()=>{
-    fillChapters();
-    loadQuestions();
+  courseQuestions.forEach((q, index) => {
+    if (
+      String(answers[index] || '').toUpperCase() ===
+      String(q.correct_option || '').toUpperCase()
+    ) {
+      correct++;
+    }
   });
 
-  $('chapterNumber').addEventListener('change', ()=>{
-    updateChapterName();
-    loadQuestions();
-  });
+  const total = courseQuestions.length;
+  const wrong = total - correct;
+  const percentage = total
+    ? ((correct / total) * 100).toFixed(2)
+    : '0.00';
 
-  $('questionForm').addEventListener('submit', saveQuestion);
-  $('refreshQuestions').addEventListener('click', loadQuestions);
-
-  fillChapters();
-  loadQuestions();
-});
-
-
-// ============================================
-// BULK CSV UPLOAD + DUPLICATE PROTECTION
-// ============================================
-
-let bulkRows = [];
-
-function showBulkMessage(text, type='success'){
-  $('bulkMessage').innerHTML =
-    `<div class="${type === 'error' ? 'error-box' : 'success-box'}">${text}</div>`;
-}
-
-function csvEscape(value){
-  const s = String(value ?? '');
-  return /[",\n]/.test(s) ? `"${s.replaceAll('"','""')}"` : s;
-}
-
-function downloadCsvTemplate(){
-  const headers = [
-    'class_level','chapter_number','chapter_name','question_text',
-    'option_a','option_b','option_c','option_d','correct_option',
-    'explanation','difficulty'
-  ];
-
-  const sample = [
-    '10','1','अध्याय 1','यह एक उदाहरण प्रश्न है?',
-    'विकल्प A','विकल्प B','विकल्प C','विकल्प D','A',
-    'यह उदाहरण Explanation है','medium'
-  ];
-
-  const csv = '\ufeff' + headers.map(csvEscape).join(',') + '\n' +
-              sample.map(csvEscape).join(',');
-
-  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'Ganit_Setu_Questions_Template.csv';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(a.href);
-}
-
-function parseCSV(text){
-  const rows = [];
-  let row = [], cell = '', quoted = false;
-
-  for(let i=0;i<text.length;i++){
-    const ch = text[i];
-
-    if(ch === '"'){
-      if(quoted && text[i+1] === '"'){
-        cell += '"';
-        i++;
-      } else {
-        quoted = !quoted;
-      }
-    } else if(ch === ',' && !quoted){
-      row.push(cell.trim());
-      cell = '';
-    } else if((ch === '\n' || ch === '\r') && !quoted){
-      if(ch === '\r' && text[i+1] === '\n') i++;
-      row.push(cell.trim());
-      cell = '';
-      if(row.some(v => v !== '')) rows.push(row);
-      row = [];
-    } else {
-      cell += ch;
-    }
-  }
-
-  row.push(cell.trim());
-  if(row.some(v => v !== '')) rows.push(row);
-
-  if(!rows.length) return [];
-
-  const headers = rows[0].map(h => h.replace(/^\uFEFF/, '').trim().toLowerCase());
-
-  return rows.slice(1).map((values, index) => {
-    const obj = {_row:index + 2};
-    headers.forEach((h,i)=> obj[h] = values[i] ?? '');
-    return obj;
-  });
-}
-
-function normalizeQuestion(text=''){
-  return String(text)
-    .replace(/\s+/g,' ')
-    .trim()
-    .toLowerCase();
-}
-
-function validateBulkRow(row){
-  const classLevel = Number(row.class_level);
-  const chapter = Number(row.chapter_number);
-  const correct = String(row.correct_option || '').trim().toUpperCase();
-  const difficulty = String(row.difficulty || 'medium').trim().toLowerCase();
-
-  if(![9,10].includes(classLevel)) return 'Invalid class_level (9 या 10 होना चाहिए)';
-  if(!Number.isInteger(chapter) || chapter < 1 || chapter > (classLevel === 9 ? 12 : 14))
-    return 'Invalid chapter_number';
-  if(!String(row.question_text || '').trim()) return 'question_text खाली है';
-  if(!String(row.option_a || '').trim() || !String(row.option_b || '').trim() ||
-     !String(row.option_c || '').trim() || !String(row.option_d || '').trim())
-    return 'चारों options जरूरी हैं';
-  if(!['A','B','C','D'].includes(correct)) return 'correct_option A/B/C/D होना चाहिए';
-  if(!['easy','medium','hard'].includes(difficulty)) return 'difficulty invalid है';
-
-  return null;
-}
-
-async function previewBulkUpload(){
-  const file = $('bulkFile').files[0];
-
-  if(!file){
-    showBulkMessage('पहले CSV file चुनें।', 'error');
-    return;
-  }
-
-  try{
-    const text = await file.text();
-    const parsed = parseCSV(text);
-
-    if(!parsed.length){
-      showBulkMessage('CSV में कोई Question नहीं मिला।', 'error');
-      return;
-    }
-
-    // Duplicate protection:
-    // 1. CSV के अंदर duplicate
-    // 2. Supabase में existing same class + chapter + normalized question
-    const seen = new Set();
-    const validCandidates = [];
-
-    bulkRows = parsed.map(row => {
-      const error = validateBulkRow(row);
-      const normalized = `${row.class_level}|${row.chapter_number}|${normalizeQuestion(row.question_text)}`;
-
-      if(error) return {...row, _status:'error', _reason:error};
-
-      if(seen.has(normalized))
-        return {...row, _status:'skip', _reason:'CSV के अंदर duplicate Question'};
-
-      seen.add(normalized);
-      validCandidates.push({...row, _key:normalized});
-      return {...row, _status:'checking', _reason:'Database duplicate check'};
-    });
-
-    // Existing DB questions by class/chapter groups
-    const groups = {};
-    validCandidates.forEach(r => {
-      const key = `${r.class_level}|${r.chapter_number}`;
-      if(!groups[key]) groups[key] = [];
-      groups[key].push(r);
-    });
-
-    for(const key of Object.keys(groups)){
-      const [classLevel, chapterNumber] = key.split('|').map(Number);
-
-      const {data, error} = await supabaseClient
-        .from('questions')
-        .select('question_text')
-        .eq('class_level', classLevel)
-        .eq('chapter_number', chapterNumber);
-
-      if(error){
-        groups[key].forEach(candidate => {
-          const target = bulkRows.find(r => r._row === candidate._row);
-          if(target){
-            target._status = 'error';
-            target._reason = 'Database check error: ' + error.message;
-          }
-        });
-        continue;
-      }
-
-      const existing = new Set((data || []).map(q => normalizeQuestion(q.question_text)));
-
-      groups[key].forEach(candidate => {
-        const target = bulkRows.find(r => r._row === candidate._row);
-        if(!target) return;
-
-        if(existing.has(normalizeQuestion(candidate.question_text))){
-          target._status = 'skip';
-          target._reason = 'पहले से database में मौजूद है';
-        } else {
-          target._status = 'ready';
-          target._reason = 'Upload के लिए तैयार';
-        }
-      });
-    }
-
-    renderBulkPreview();
-    $('uploadBulkBtn').disabled = !bulkRows.some(r => r._status === 'ready');
-
-  }catch(err){
-    showBulkMessage('CSV पढ़ने में Error: ' + err.message, 'error');
-  }
-}
-
-function renderBulkPreview(){
-  const counts = {ready:0, skip:0, error:0, checking:0};
-
-  bulkRows.forEach(r => counts[r._status] = (counts[r._status] || 0) + 1);
-
-  $('bulkSummary').innerHTML =
-    `कुल: <b>${bulkRows.length}</b> | ` +
-    `Upload Ready: <b>${counts.ready}</b> | ` +
-    `Duplicate Skip: <b>${counts.skip}</b> | ` +
-    `Invalid/Error: <b>${counts.error}</b>`;
-
-  $('bulkPreviewList').innerHTML = bulkRows.map(r => {
-    const cls = r._status === 'ready' ? 'bulk-ok' :
-                r._status === 'skip' ? 'bulk-skip' : 'bulk-error';
-
-    return `<tr>
-      <td>${r._row}</td>
-      <td>${escapeHtml(r.class_level)}</td>
-      <td>${escapeHtml(r.chapter_number)}</td>
-      <td>${escapeHtml(r.question_text || '')}</td>
-      <td class="${cls}">${escapeHtml(r._reason || r._status)}</td>
-    </tr>`;
-  }).join('');
-}
-
-async function uploadBulkQuestions(){
-  const ready = bulkRows.filter(r => r._status === 'ready');
-
-  if(!ready.length){
-    showBulkMessage('Upload करने के लिए कोई नया valid Question नहीं है।', 'error');
-    return;
-  }
-
-  if(!confirm(`${ready.length} नए Questions Supabase में upload करें?`)) return;
-
-  $('uploadBulkBtn').disabled = true;
-  $('uploadBulkBtn').textContent = 'Upload हो रहा है...';
-
-  let added = 0;
-  let failed = 0;
-
-  // Row-by-row insert keeps partial failures visible and avoids one bad row blocking all.
-  for(const row of ready){
-    const payload = {
-      class_level: Number(row.class_level),
-      subject: 'Mathematics',
-      chapter_number: Number(row.chapter_number),
-      chapter_name: String(row.chapter_name || `अध्याय ${row.chapter_number}`).trim(),
-      question_text: String(row.question_text).trim(),
-      option_a: String(row.option_a).trim(),
-      option_b: String(row.option_b).trim(),
-      option_c: String(row.option_c).trim(),
-      option_d: String(row.option_d).trim(),
-      correct_option: String(row.correct_option).trim().toUpperCase(),
-      explanation: String(row.explanation || '').trim() || null,
-      marks: 1,
-      difficulty: String(row.difficulty || 'medium').trim().toLowerCase(),
-      status: 'active'
-    };
-
-    // Final duplicate check immediately before insert.
-    const {data: existing, error: checkError} = await supabaseClient
-      .from('questions')
-      .select('id,question_text')
-      .eq('class_level', payload.class_level)
-      .eq('chapter_number', payload.chapter_number);
-
-    if(checkError){
-      row._status = 'error';
-      row._reason = 'Final duplicate check error: ' + checkError.message;
-      failed++;
-      continue;
-    }
-
-    const duplicate = (existing || []).some(q =>
-      normalizeQuestion(q.question_text) === normalizeQuestion(payload.question_text)
-    );
-
-    if(duplicate){
-      row._status = 'skip';
-      row._reason = 'Upload के समय duplicate मिला, Skip किया गया';
-      continue;
-    }
-
-    const {error} = await supabaseClient
-      .from('questions')
-      .insert(payload);
-
-    if(error){
-      row._status = 'error';
-      row._reason = 'Upload error: ' + error.message;
-      failed++;
-    }else{
-      row._status = 'added';
-      row._reason = 'Successfully Added';
-      added++;
-    }
-  }
-
-  renderBulkPreview();
-  $('uploadBulkBtn').textContent = '🚀 Upload Valid Questions';
-  $('uploadBulkBtn').disabled = true;
-
-  const skipped = bulkRows.filter(r => r._status === 'skip').length;
-
-  showBulkMessage(
-    `✓ Bulk Upload Complete — Added: ${added}, Duplicate Skipped: ${skipped}, Errors: ${failed}`
+  sessionStorage.setItem(
+    'ganit_setu_last_result',
+    JSON.stringify({
+      correct,
+      wrong,
+      total,
+      percentage,
+      class_level: currentClassLevel,
+      submitted_at: new Date().toISOString()
+    })
   );
 
-  await loadQuestions();
+  sessionStorage.removeItem('ganit_setu_course_answers');
+
+  $('courseTest').style.display = 'none';
+
+  $('courseMessage').innerHTML =
+    `<div class="success-box"><b>✓ टेस्ट पूरा हुआ</b><br><br>` +
+    `सही उत्तर: <b>${correct}</b> / ${total}<br>` +
+    `गलत उत्तर: <b>${wrong}</b><br>` +
+    `प्रतिशत: <b>${percentage}%</b></div>`;
 }
 
-document.addEventListener('DOMContentLoaded', ()=>{
-  $('downloadTemplateBtn').addEventListener('click', downloadCsvTemplate);
-  $('previewBulkBtn').addEventListener('click', previewBulkUpload);
-  $('uploadBulkBtn').addEventListener('click', uploadBulkQuestions);
+document.addEventListener('DOMContentLoaded', () => {
+  // केवल Course Test page पर chapter dropdown logic चलाएँ.
+  if ($('chapterTo') && $('startCourseBtn')) {
+    setupCoursePage();
+  }
+
+  const exitBtn = $('exitTest');
+
+  if (exitBtn) {
+    exitBtn.addEventListener('click', () => {
+      clearInterval(timerInterval);
+      sessionStorage.removeItem('ganit_setu_course_answers');
+      location.href = 'test-types.html';
+    });
+  }
 });
-
-
-// ============================================
-// FAST BULK UPLOAD OVERRIDE
-// Preview: only required DB checks, grouped by class
-// Upload: batch inserts (50 rows per request)
-// ============================================
-
-async function previewBulkUpload(){
-  const file = $('bulkFile').files[0];
-
-  if(!file){
-    showBulkMessage('पहले CSV file चुनें।', 'error');
-    return;
-  }
-
-  $('previewBulkBtn').disabled = true;
-  $('previewBulkBtn').textContent = '⏳ तेज़ी से Check हो रहा है...';
-  $('bulkSummary').textContent = 'CSV पढ़ी जा रही है और Duplicate Check हो रहा है...';
-
-  try{
-    const text = await file.text();
-    const parsed = parseCSV(text);
-
-    if(!parsed.length){
-      showBulkMessage('CSV में कोई Question नहीं मिला।', 'error');
-      return;
-    }
-
-    const seen = new Set();
-    bulkRows = parsed.map(row => {
-      const error = validateBulkRow(row);
-      const normalized = `${row.class_level}|${row.chapter_number}|${normalizeQuestion(row.question_text)}`;
-
-      if(error) return {...row, _status:'error', _reason:error};
-
-      if(seen.has(normalized)){
-        return {...row, _status:'skip', _reason:'CSV के अंदर Duplicate Question'};
-      }
-
-      seen.add(normalized);
-      return {...row, _status:'checking', _reason:'Database check'};
-    });
-
-    // FAST: Fetch all existing questions only once per class.
-    const classes = [...new Set(
-      bulkRows
-        .filter(r => r._status === 'checking')
-        .map(r => Number(r.class_level))
-    )];
-
-    const existingKeys = new Set();
-
-    for(const classLevel of classes){
-      const {data, error} = await supabaseClient
-        .from('questions')
-        .select('class_level,chapter_number,question_text')
-        .eq('class_level', classLevel);
-
-      if(error){
-        bulkRows
-          .filter(r => r._status === 'checking' && Number(r.class_level) === classLevel)
-          .forEach(r => {
-            r._status = 'error';
-            r._reason = 'Database check error: ' + error.message;
-          });
-        continue;
-      }
-
-      (data || []).forEach(q => {
-        existingKeys.add(
-          `${q.class_level}|${q.chapter_number}|${normalizeQuestion(q.question_text)}`
-        );
-      });
-    }
-
-    bulkRows.forEach(row => {
-      if(row._status !== 'checking') return;
-
-      const key = `${row.class_level}|${row.chapter_number}|${normalizeQuestion(row.question_text)}`;
-
-      if(existingKeys.has(key)){
-        row._status = 'skip';
-        row._reason = 'पहले से Database में मौजूद है';
-      }else{
-        row._status = 'ready';
-        row._reason = 'Upload के लिए तैयार';
-      }
-    });
-
-    renderBulkPreview();
-    const readyCount = bulkRows.filter(r => r._status === 'ready').length;
-    $('uploadBulkBtn').disabled = readyCount === 0;
-
-    showBulkMessage(
-      `✓ Fast Check Complete — ${readyCount} नए Questions Upload के लिए तैयार हैं।`
-    );
-
-  }catch(err){
-    showBulkMessage('CSV पढ़ने में Error: ' + err.message, 'error');
-  }finally{
-    $('previewBulkBtn').disabled = false;
-    $('previewBulkBtn').textContent = '🔍 Preview / Validate';
-  }
-}
-
-async function uploadBulkQuestions(){
-  const ready = bulkRows.filter(r => r._status === 'ready');
-
-  if(!ready.length){
-    showBulkMessage('Upload करने के लिए कोई नया valid Question नहीं है।', 'error');
-    return;
-  }
-
-  if(!confirm(`${ready.length} नए Questions Supabase में तेज़ Batch Upload करें?`)) return;
-
-  $('uploadBulkBtn').disabled = true;
-  $('previewBulkBtn').disabled = true;
-
-  const BATCH_SIZE = 50;
-  let added = 0;
-  let failed = 0;
-
-  for(let start = 0; start < ready.length; start += BATCH_SIZE){
-    const batchRows = ready.slice(start, start + BATCH_SIZE);
-
-    $('uploadBulkBtn').textContent =
-      `⏳ Uploading ${Math.min(start + BATCH_SIZE, ready.length)}/${ready.length}`;
-
-    const payload = batchRows.map(row => ({
-      class_level: Number(row.class_level),
-      subject: 'Mathematics',
-      chapter_number: Number(row.chapter_number),
-      chapter_name: String(row.chapter_name || `अध्याय ${row.chapter_number}`).trim(),
-      question_text: String(row.question_text).trim(),
-      option_a: String(row.option_a).trim(),
-      option_b: String(row.option_b).trim(),
-      option_c: String(row.option_c).trim(),
-      option_d: String(row.option_d).trim(),
-      correct_option: String(row.correct_option).trim().toUpperCase(),
-      explanation: String(row.explanation || '').trim() || null,
-      marks: 1,
-      difficulty: String(row.difficulty || 'medium').trim().toLowerCase(),
-      status: 'active'
-    }));
-
-    const {error} = await supabaseClient
-      .from('questions')
-      .insert(payload);
-
-    if(error){
-      // If a batch fails, retry row-by-row so valid rows are not lost.
-      for(const row of batchRows){
-        const onePayload = {
-          class_level: Number(row.class_level),
-          subject: 'Mathematics',
-          chapter_number: Number(row.chapter_number),
-          chapter_name: String(row.chapter_name || `अध्याय ${row.chapter_number}`).trim(),
-          question_text: String(row.question_text).trim(),
-          option_a: String(row.option_a).trim(),
-          option_b: String(row.option_b).trim(),
-          option_c: String(row.option_c).trim(),
-          option_d: String(row.option_d).trim(),
-          correct_option: String(row.correct_option).trim().toUpperCase(),
-          explanation: String(row.explanation || '').trim() || null,
-          marks: 1,
-          difficulty: String(row.difficulty || 'medium').trim().toLowerCase(),
-          status: 'active'
-        };
-
-        const {error: oneError} = await supabaseClient
-          .from('questions')
-          .insert(onePayload);
-
-        if(oneError){
-          row._status = 'error';
-          row._reason = 'Upload error: ' + oneError.message;
-          failed++;
-        }else{
-          row._status = 'added';
-          row._reason = 'Successfully Added';
-          added++;
-        }
-      }
-    }else{
-      batchRows.forEach(row => {
-        row._status = 'added';
-        row._reason = 'Successfully Added';
-      });
-      added += batchRows.length;
-    }
-
-    renderBulkPreview();
-  }
-
-  const skipped = bulkRows.filter(r => r._status === 'skip').length;
-
-  $('uploadBulkBtn').textContent = '🚀 Upload Valid Questions';
-  $('previewBulkBtn').disabled = false;
-  $('uploadBulkBtn').disabled = true;
-
-  showBulkMessage(
-    `✓ Fast Bulk Upload Complete — Added: ${added}, Duplicate Skipped: ${skipped}, Errors: ${failed}`
-  );
-
-  await loadQuestions();
-}
