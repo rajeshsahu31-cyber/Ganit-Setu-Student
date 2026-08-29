@@ -1,88 +1,407 @@
-const $=id=>document.getElementById(id);
-const MAX={9:12,10:14};
-const cls=()=>{const n=Number(sessionStorage.getItem("ganit_setu_student_class"));return MAX[n]?n:10};
-let qs=[],i=0,ans=[],started=0,tick;
+// GANIT SETU STUDENT TEST SYSTEM
+// Clean replacement: Questions + Supabase save connection
 
-const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+const $ = id => document.getElementById(id);
+const MAX_CHAPTERS = { 9: 12, 10: 14 };
 
-async function loadQ(c,chapter=null){
-  if(typeof supabaseClient==="undefined")throw Error("Supabase connection नहीं मिली");
-  let q=supabaseClient.from("questions").select("id,class_level,chapter_number,chapter_name,question_text,option_a,option_b,option_c,option_d,correct_option,explanation").eq("class_level",c).eq("status","active").order("id");
-  if(chapter!==null)q=q.eq("chapter_number",chapter);
-  const {data,error}=await q;if(error)throw error;return data||[];
+function getClassLevel() {
+  const n = Number(sessionStorage.getItem('ganit_setu_student_class'));
+  return MAX_CHAPTERS[n] ? n : 10;
 }
 
-function timer(){
-  const t=$("timer");if(!t)return;
-  clearInterval(tick);started=Date.now();
-  tick=setInterval(()=>{let s=Math.floor((Date.now()-started)/1000);t.textContent=`⏱️ ${String(s/60|0).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`},1000);
+function getStudentCode() {
+  return sessionStorage.getItem('ganit_setu_student_id') || '';
 }
 
-function draw(){
-  const q=qs[i];if(!q)return;
-  $("questionNo").textContent=`प्रश्न ${i+1} / ${qs.length}`;
-  $("questionText").innerHTML=`<div class="chapter-label">अध्याय ${esc(q.chapter_number)}${q.chapter_name?" : "+esc(q.chapter_name):""}</div><div>${esc(q.question_text)}</div>`;
-  $("options").innerHTML=[["A",q.option_a],["B",q.option_b],["C",q.option_c],["D",q.option_d]].map(([k,v])=>`<button type="button" class="option-btn ${ans[i]===k?"selected":""}" data-k="${k}"><b>${k}.</b> ${esc(v)}</button>`).join("");
-  $("options").querySelectorAll("button").forEach(b=>b.onclick=()=>{ans[i]=b.dataset.k;$("options").querySelectorAll("button").forEach(x=>x.classList.remove("selected"));b.classList.add("selected")});
-  $("nextQuestion").textContent=i===qs.length-1?"टेस्ट Submit करें":"अगला प्रश्न →";
+function esc(value = '') {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
 }
 
-function result(box){
-  clearInterval(tick);let ok=qs.filter((q,n)=>(ans[n]||"").toUpperCase()===String(q.correct_option||"").trim().toUpperCase()).length;
-  const el=$(box);if(el)el.innerHTML=`<div class="success-box"><b>✓ टेस्ट पूरा हुआ</b><br><br>सही उत्तर: <b>${ok}/${qs.length}</b><br>गलत उत्तर: <b>${qs.length-ok}</b><br>प्रतिशत: <b>${(ok*100/qs.length).toFixed(2)}%</b></div>`;
+let questions = [];
+let currentIndex = 0;
+let answers = [];
+let startedAt = 0;
+let timerHandle = null;
+let currentTestMeta = null;
+
+async function loadQuestions(classLevel, chapterNumber = null) {
+  let query = supabaseClient
+    .from('questions')
+    .select('id,class_level,chapter_number,chapter_name,question_text,option_a,option_b,option_c,option_d,correct_option')
+    .eq('class_level', classLevel)
+    .eq('status', 'active')
+    .order('id', { ascending: true });
+
+  if (chapterNumber !== null) {
+    query = query.eq('chapter_number', chapterNumber);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data || [];
 }
 
-function run(testBox,messageBox){
-  $(testBox).style.display="block";i=0;ans=[];draw();timer();
-  $("nextQuestion").onclick=()=>{if(!ans[i])return alert("कृपया एक विकल्प चुनें।");if(i<qs.length-1){i++;draw()}else{$(testBox).style.display="none";result(messageBox)}};
+function startTimer() {
+  const timer = $('timer');
+  if (!timer) return;
+
+  clearInterval(timerHandle);
+  startedAt = Date.now();
+
+  timerHandle = setInterval(() => {
+    const seconds = Math.floor((Date.now() - startedAt) / 1000);
+    const mm = String(Math.floor(seconds / 60)).padStart(2, '0');
+    const ss = String(seconds % 60).padStart(2, '0');
+    timer.textContent = `⏱️ ${mm}:${ss}`;
+  }, 1000);
 }
 
-function setupCourse(){
-  if(!$("chapterTo"))return;
-  const c=cls(),s=$("chapterTo");s.innerHTML='<option value="">अध्याय चुनें</option>';
-  for(let n=1;n<=MAX[c];n++)s.innerHTML+=`<option value="${n}">अध्याय ${n}</option>`;
-  $("studentClassInfo").textContent=`कक्षा ${c} • कुल ${MAX[c]} अध्याय`;
-  $("startCourseBtn").onclick=async()=>{
-    const to=Number(s.value),m=$("courseMessage");if(!to){m.innerHTML='<div class="error-box">कृपया अध्याय चुनें।</div>';return}
-    try{
-      const all=await loadQ(c);qs=[];
-      for(let n=1;n<=to;n++)qs.push(...all.filter(x=>Number(x.chapter_number)===n).slice(0,10));
-      if(!qs.length)throw Error("चुने गए अध्यायों में Questions उपलब्ध नहीं हैं।");
-      $("courseSetup").style.display="none";$("courseTest").style.display="block";
-      $("testClass").textContent=`कक्षा ${c} • अध्याय 1 से ${to}`;$("questionCount").textContent=`कुल ${qs.length} प्रश्न`;
-      i=0;ans=[];draw();timer();
-      $("nextQuestion").onclick=()=>{if(!ans[i])return alert("कृपया एक विकल्प चुनें।");if(i<qs.length-1){i++;draw()}else{$("courseTest").style.display="none";result("courseMessage")}};
-    }catch(e){m.innerHTML=`<div class="error-box">${esc(e.message)}</div>`}
+function renderQuestion() {
+  const q = questions[currentIndex];
+  if (!q) return;
+
+  $('questionNo').textContent =
+    `प्रश्न ${currentIndex + 1} / ${questions.length}`;
+
+  $('questionText').innerHTML =
+    `<div class="chapter-label">अध्याय ${esc(q.chapter_number)}${q.chapter_name ? ' : ' + esc(q.chapter_name) : ''}</div>` +
+    `<div>${esc(q.question_text)}</div>`;
+
+  const optionData = [
+    ['A', q.option_a],
+    ['B', q.option_b],
+    ['C', q.option_c],
+    ['D', q.option_d]
+  ];
+
+  $('options').innerHTML = optionData.map(([key, value]) =>
+    `<button type="button" class="option-btn ${answers[currentIndex] === key ? 'selected' : ''}" data-option="${key}">
+      <b>${key}.</b> ${esc(value)}
+    </button>`
+  ).join('');
+
+  $('options').querySelectorAll('button').forEach(button => {
+    button.onclick = () => {
+      answers[currentIndex] = button.dataset.option;
+      $('options').querySelectorAll('button')
+        .forEach(x => x.classList.remove('selected'));
+      button.classList.add('selected');
+    };
+  });
+
+  $('nextQuestion').textContent =
+    currentIndex === questions.length - 1
+      ? 'टेस्ट Submit करें'
+      : 'अगला प्रश्न →';
+}
+
+async function createTestAndQuestions() {
+  const meta = currentTestMeta;
+
+  const { data: testId, error } = await supabaseClient.rpc(
+    'get_or_create_ganit_test',
+    {
+      p_title: meta.title,
+      p_test_type: meta.testType,
+      p_class_level: meta.classLevel,
+      p_chapter_from: meta.chapterFrom,
+      p_chapter_to: meta.chapterTo,
+      p_question_count: questions.length,
+      p_duration_minutes: meta.durationMinutes || 10
+    }
+  );
+
+  if (error) throw error;
+
+  // test_questions में current questions को जोड़ना
+  const rows = questions.map((q, index) => ({
+    test_id: testId,
+    question_id: q.id,
+    question_order: index + 1
+  }));
+
+  const { error: linkError } = await supabaseClient
+    .from('test_questions')
+    .upsert(rows, { onConflict: 'test_id,question_id' });
+
+  if (linkError) throw linkError;
+
+  return testId;
+}
+
+async function saveAttempt() {
+  const studentCode = getStudentCode();
+
+  if (!studentCode) {
+    throw new Error('Student login information नहीं मिली।');
+  }
+
+  const testId = await createTestAndQuestions();
+
+  const answerPayload = questions.map((q, index) => ({
+    question_id: q.id,
+    selected_option: answers[index] || null
+  }));
+
+  const timeTakenSeconds = Math.floor((Date.now() - startedAt) / 1000);
+
+  const { data, error } = await supabaseClient.rpc(
+    'save_ganit_test_attempt',
+    {
+      p_student_code: studentCode,
+      p_test_id: testId,
+      p_answers: answerPayload,
+      p_time_taken_seconds: timeTakenSeconds
+    }
+  );
+
+  if (error) throw error;
+  return data;
+}
+
+async function submitTest(testBoxId, messageBoxId) {
+  clearInterval(timerHandle);
+
+  const nextButton = $('nextQuestion');
+  if (nextButton) {
+    nextButton.disabled = true;
+    nextButton.textContent = 'Save हो रहा है...';
+  }
+
+  try {
+    const result = await saveAttempt();
+
+    $(testBoxId).style.display = 'none';
+
+    const box = $(messageBoxId);
+    box.innerHTML =
+      `<div class="success-box">
+        <b>✓ टेस्ट सफलतापूर्वक Submit हो गया</b><br><br>
+        सही उत्तर: <b>${result.correct}/${result.total}</b><br>
+        गलत उत्तर: <b>${result.wrong}</b><br>
+        बिना उत्तर: <b>${result.unattempted}</b><br>
+        प्रतिशत: <b>${result.percentage}%</b><br><br>
+        <small>✓ Result Supabase में save हो गया है।</small>
+      </div>`;
+
+  } catch (error) {
+    console.error('Test save error:', error);
+
+    const box = $(messageBoxId);
+    box.innerHTML =
+      `<div class="error-box">
+        टेस्ट का Result save नहीं हुआ: ${esc(error.message || 'Unknown error')}
+      </div>`;
+
+    $(testBoxId).style.display = 'none';
+  } finally {
+    if (nextButton) {
+      nextButton.disabled = false;
+      nextButton.textContent = 'टेस्ट Submit करें';
+    }
+  }
+}
+
+function beginTest(testBoxId, messageBoxId) {
+  currentIndex = 0;
+  answers = new Array(questions.length).fill(null);
+
+  $(testBoxId).style.display = 'block';
+
+  renderQuestion();
+  startTimer();
+
+  $('nextQuestion').onclick = () => {
+    if (!answers[currentIndex]) {
+      alert('कृपया एक विकल्प चुनें।');
+      return;
+    }
+
+    if (currentIndex < questions.length - 1) {
+      currentIndex++;
+      renderQuestion();
+      return;
+    }
+
+    submitTest(testBoxId, messageBoxId);
   };
 }
 
-function setupChapter(){
-  if(!$("chapterSelect"))return;
-  const c=cls(),s=$("chapterSelect");s.innerHTML='<option value="">अध्याय चुनें</option>';
-  for(let n=1;n<=MAX[c];n++)s.innerHTML+=`<option value="${n}">अध्याय ${n}</option>`;
-  $("chapterClassInfo").textContent=`कक्षा ${c} • एक अध्याय • 10 Questions`;
-  $("startChapterBtn").onclick=async()=>{
-    const ch=Number(s.value),m=$("chapterMessage");if(!ch){m.innerHTML='<div class="error-box">कृपया अध्याय चुनें।</div>';return}
-    try{
-      qs=(await loadQ(c,ch)).slice(0,10);
-      if(qs.length<10)throw Error(`इस अध्याय में अभी ${qs.length} Questions हैं। 10 Questions उपलब्ध होने चाहिए।`);
-      $("chapterSetup").style.display="none";$("chapterTest").style.display="block";
-      $("chapterTestTitle").textContent=`कक्षा ${c} • अध्याय ${ch} • 10 Questions`;run("chapterTest","chapterMessage");
-    }catch(e){m.innerHTML=`<div class="error-box">${esc(e.message)}</div>`}
+function setupCourseTest() {
+  if (!$('chapterTo')) return;
+
+  const classLevel = getClassLevel();
+  const select = $('chapterTo');
+
+  select.innerHTML = '<option value="">अध्याय चुनें</option>';
+
+  for (let chapter = 1; chapter <= MAX_CHAPTERS[classLevel]; chapter++) {
+    select.innerHTML +=
+      `<option value="${chapter}">अध्याय ${chapter}</option>`;
+  }
+
+  if ($('studentClassInfo')) {
+    $('studentClassInfo').textContent =
+      `कक्षा ${classLevel} • कुल ${MAX_CHAPTERS[classLevel]} अध्याय`;
+  }
+
+  $('startCourseBtn').onclick = async () => {
+    const chapterTo = Number(select.value);
+    const message = $('courseMessage');
+
+    if (!chapterTo) {
+      message.innerHTML =
+        '<div class="error-box">कृपया अध्याय चुनें।</div>';
+      return;
+    }
+
+    try {
+      const all = await loadQuestions(classLevel);
+
+      questions = [];
+
+      for (let chapter = 1; chapter <= chapterTo; chapter++) {
+        questions.push(
+          ...all.filter(q => Number(q.chapter_number) === chapter).slice(0, 10)
+        );
+      }
+
+      if (!questions.length) {
+        throw new Error('चुने गए अध्यायों में Questions उपलब्ध नहीं हैं।');
+      }
+
+      currentTestMeta = {
+        title: `Course Test Class ${classLevel} Chapter 1-${chapterTo}`,
+        testType: 'chapter_range',
+        classLevel,
+        chapterFrom: 1,
+        chapterTo,
+        durationMinutes: 10
+      };
+
+      $('courseSetup').style.display = 'none';
+      $('courseTest').style.display = 'block';
+
+      $('testClass').textContent =
+        `कक्षा ${classLevel} • अध्याय 1 से ${chapterTo}`;
+
+      $('questionCount').textContent =
+        `कुल ${questions.length} प्रश्न`;
+
+      beginTest('courseTest', 'courseMessage');
+
+    } catch (error) {
+      message.innerHTML =
+        `<div class="error-box">${esc(error.message)}</div>`;
+    }
   };
 }
 
-function setupDaily(){
-  if(!$("dailyStartBtn"))return;
-  $("dailyStartBtn").onclick=async()=>{
-    const m=$("dailyMessage");
-    try{
-      const all=await loadQ(cls());if(all.length<2)throw Error("कम से कम 2 Questions उपलब्ध होने चाहिए।");
-      const day=Math.floor(Date.now()/86400000);qs=[...all].sort((a,b)=>((a.id+day)%1009)-((b.id+day)%1009)).slice(0,2);
-      $("dailySetup").style.display="none";$("dailyTest").style.display="block";
-      $("dailyTitle").textContent=`आज का Daily Test • कक्षा ${cls()} • 2 Questions`;run("dailyTest","dailyMessage");
-    }catch(e){m.innerHTML=`<div class="error-box">${esc(e.message)}</div>`}
+function setupChapterTest() {
+  if (!$('chapterSelect')) return;
+
+  const classLevel = getClassLevel();
+  const select = $('chapterSelect');
+
+  select.innerHTML = '<option value="">अध्याय चुनें</option>';
+
+  for (let chapter = 1; chapter <= MAX_CHAPTERS[classLevel]; chapter++) {
+    select.innerHTML +=
+      `<option value="${chapter}">अध्याय ${chapter}</option>`;
+  }
+
+  $('chapterClassInfo').textContent =
+    `कक्षा ${classLevel} • एक अध्याय • 10 Questions`;
+
+  $('startChapterBtn').onclick = async () => {
+    const chapter = Number(select.value);
+    const message = $('chapterMessage');
+
+    if (!chapter) {
+      message.innerHTML =
+        '<div class="error-box">कृपया अध्याय चुनें।</div>';
+      return;
+    }
+
+    try {
+      questions = (await loadQuestions(classLevel, chapter)).slice(0, 10);
+
+      if (questions.length < 10) {
+        throw new Error(
+          `इस अध्याय में ${questions.length} Questions हैं। 10 Questions उपलब्ध होने चाहिए।`
+        );
+      }
+
+      currentTestMeta = {
+        title: `Chapter Test Class ${classLevel} Chapter ${chapter}`,
+        testType: 'chapter_range',
+        classLevel,
+        chapterFrom: chapter,
+        chapterTo: chapter,
+        durationMinutes: 10
+      };
+
+      $('chapterSetup').style.display = 'none';
+
+      $('chapterTestTitle').textContent =
+        `कक्षा ${classLevel} • अध्याय ${chapter} • 10 Questions`;
+
+      beginTest('chapterTest', 'chapterMessage');
+
+    } catch (error) {
+      message.innerHTML =
+        `<div class="error-box">${esc(error.message)}</div>`;
+    }
   };
 }
 
-document.addEventListener("DOMContentLoaded",()=>{setupCourse();setupChapter();setupDaily()});
+function setupDailyTest() {
+  if (!$('dailyStartBtn')) return;
+
+  $('dailyStartBtn').onclick = async () => {
+    const message = $('dailyMessage');
+    const classLevel = getClassLevel();
+
+    try {
+      const all = await loadQuestions(classLevel);
+
+      if (all.length < 2) {
+        throw new Error('Daily Test के लिए कम से कम 2 Questions चाहिए।');
+      }
+
+      // अभी केवल connection testing के लिए 2 Questions.
+      questions = all.slice(0, 2);
+
+      currentTestMeta = {
+        title: `Daily Test Class ${classLevel}`,
+        testType: 'daily',
+        classLevel,
+        chapterFrom: 1,
+        chapterTo: 1,
+        durationMinutes: 10
+      };
+
+      $('dailySetup').style.display = 'none';
+
+      $('dailyTitle').textContent =
+        `आज का Daily Test • कक्षा ${classLevel} • 2 Questions`;
+
+      beginTest('dailyTest', 'dailyMessage');
+
+    } catch (error) {
+      message.innerHTML =
+        `<div class="error-box">${esc(error.message)}</div>`;
+    }
+  };
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  setupCourseTest();
+  setupChapterTest();
+  setupDailyTest();
+});
