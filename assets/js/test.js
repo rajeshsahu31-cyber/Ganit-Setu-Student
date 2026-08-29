@@ -118,16 +118,17 @@ async function createTestAndQuestions() {
 
   if (error) throw error;
 
-  // test_questions में current questions को जोड़ना
-  const rows = questions.map((q, index) => ({
-    test_id: testId,
-    question_id: q.id,
-    question_order: index + 1
-  }));
+  // test_questions को सीधे browser से नहीं लिखेंगे।
+  // RLS bypass करने के लिए सुरक्षित Supabase RPC का उपयोग होगा।
+  const questionIds = questions.map(q => Number(q.id));
 
-  const { error: linkError } = await supabaseClient
-    .from('test_questions')
-    .upsert(rows, { onConflict: 'test_id,question_id' });
+  const { error: linkError } = await supabaseClient.rpc(
+    'sync_ganit_test_questions',
+    {
+      p_test_id: testId,
+      p_question_ids: questionIds
+    }
+  );
 
   if (linkError) throw linkError;
 
