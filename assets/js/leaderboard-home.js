@@ -170,10 +170,21 @@ async function loadHomeLeaderboard(){
     return;
   }
 
-  // पहला ऐसा टेस्ट चुनें जिसमें वास्तव में Result उपलब्ध हो।
+  // HOME PAGE पर केवल मुख्य संयुक्त Course Progress टेस्ट दिखाना है।
+  // Daily और Chapter Practice टेस्ट केवल "पूरा देखें" वाले पेज में रहेंगे।
+  const courseProgressTests = tests.filter(
+    test => String(test.test_type || '').toLowerCase() === 'course_progress'
+  );
+
+  if(!courseProgressTests.length){
+    setHomeLeaderboardMessage('<b>अभी मुख्य प्रगति टेस्ट का कोई Result उपलब्ध नहीं है।</b>');
+    return;
+  }
+
+  // उपलब्ध Course Progress tests में सबसे नया Result वाला टेस्ट चुनें।
   let selectedData=null;
 
-  for(const test of tests){
+  for(const test of courseProgressTests){
     const {data,error}=await supabaseClient.rpc('get_ganit_leaderboard',{
       p_class_level:classLevel,
       p_test_id:Number(test.test_id)
