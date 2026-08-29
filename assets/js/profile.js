@@ -92,7 +92,7 @@ async function loadStudentProfile(){
     sessionStorage.setItem('ganit_setu_student_school', data.school_name || '');
 
   }catch(error){
-    console.error('Profile load error:',error);
+    console.error('Profile load error:', error);
     setText('studentNameTop','विद्यार्थी');
     setText('studentName','प्रोफाइल लोड नहीं हुई');
     setText('studentId','—');
