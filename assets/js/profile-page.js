@@ -1,5 +1,7 @@
 document.addEventListener('DOMContentLoaded', async () => {
 
+  const BUCKET_NAME = 'student-photos';
+
   const sid = sessionStorage.getItem('ganit_setu_student_id');
 
   if (!sid) {
@@ -7,75 +9,143 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
+
+  // Elements
+  const pPhoto = document.getElementById('pPhoto');
+  const pName = document.getElementById('pName');
+  const pId = document.getElementById('pId');
+  const pClass = document.getElementById('pClass');
+  const pSchool = document.getElementById('pSchool');
+  const pMobile = document.getElementById('pMobile');
+
   const photoInput = document.getElementById('photoInput');
   const uploadPhotoBtn = document.getElementById('uploadPhotoBtn');
   const photoStatus = document.getElementById('photoStatus');
-  const photoBox = document.getElementById('pPhoto');
+
 
   let selectedFile = null;
 
 
-  // छात्र की प्रोफाइल लोड करें
-  try {
+  // संदेश दिखाने का function
+  function showStatus(message, isError = false) {
 
-    const { data, error } = await supabaseClient
-      .from('students')
-      .select(
-        'student_id,full_name,class_level,school_name,mobile,photo_url'
-      )
-      .eq('student_id', sid)
-      .maybeSingle();
+    photoStatus.textContent = message;
 
-    if (error) throw error;
-
-    if (!data) {
-      throw new Error('Profile नहीं मिली');
-    }
-
-
-    // छात्र की जानकारी दिखाएं
-    document.getElementById('pName').textContent =
-      data.full_name || 'विद्यार्थी';
-
-    document.getElementById('pId').textContent =
-      data.student_id || '—';
-
-    document.getElementById('pClass').textContent =
-      data.class_level
-        ? 'कक्षा ' + data.class_level + 'वीं'
-        : '—';
-
-    document.getElementById('pSchool').textContent =
-      data.school_name || '—';
-
-    document.getElementById('pMobile').textContent =
-      data.mobile || '—';
-
-
-    // पहले से फोटो है तो दिखाएं
-    if (data.photo_url) {
-
-      photoBox.innerHTML = '<img alt="Profile Photo">';
-
-      photoBox.querySelector('img').src = data.photo_url;
-
+    if (isError) {
+      photoStatus.style.color = '#c62828';
     } else {
-
-      photoBox.textContent = getInitials(data.full_name);
-
+      photoStatus.style.color = '#2563eb';
     }
-
-
-  } catch (error) {
-
-    console.error('Profile Load Error:', error);
-
-    alert('प्रोफाइल लोड नहीं हो सकी।');
 
   }
 
 
-  // फोटो चुनने पर Preview दिखाएं
+  // Initial letters
+  function getInitials(name) {
+
+    return (name || 'GS')
+      .trim()
+      .split(/\s+/)
+      .map(word => word.charAt(0))
+      .join('')
+      .slice(0, 2)
+      .toUpperCase();
+
+  }
+
+
+  // फोटो दिखाना
+  function showPhoto(photoUrl, fullName) {
+
+    if (photoUrl) {
+
+      pPhoto.innerHTML = '';
+
+      const img = document.createElement('img');
+
+      img.src = photoUrl;
+      img.alt = 'Profile Photo';
+
+      img.onerror = function () {
+
+        pPhoto.innerHTML = '';
+        pPhoto.textContent = getInitials(fullName);
+
+      };
+
+      pPhoto.appendChild(img);
+
+    } else {
+
+      pPhoto.innerHTML = '';
+      pPhoto.textContent = getInitials(fullName);
+
+    }
+
+  }
+
+
+  // Profile Load
+  async function loadProfile() {
+
+    try {
+
+      const { data, error } = await supabaseClient
+        .from('students')
+        .select(`
+          student_id,
+          full_name,
+          class_level,
+          school_name,
+          mobile,
+          photo_url
+        `)
+        .eq('student_id', sid)
+        .maybeSingle();
+
+
+      if (error) throw error;
+
+
+      if (!data) {
+        throw new Error('Profile नहीं मिली');
+      }
+
+
+      pName.textContent = data.full_name || 'विद्यार्थी';
+
+      pId.textContent = data.student_id || '—';
+
+      pClass.textContent = data.class_level
+        ? 'कक्षा ' + data.class_level + 'वीं'
+        : '—';
+
+      pSchool.textContent = data.school_name || '—';
+
+      pMobile.textContent = data.mobile || '—';
+
+
+      showPhoto(
+        data.photo_url,
+        data.full_name
+      );
+
+
+    } catch (error) {
+
+      console.error('Profile Load Error:', error);
+
+      showStatus(
+        'प्रोफाइल लोड नहीं हो सकी।',
+        true
+      );
+
+    }
+
+  }
+
+
+  // फोटो चुनना
   photoInput.addEventListener('change', function () {
 
     const file = this.files[0];
@@ -83,25 +153,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!file) return;
 
 
-    // केवल फोटो स्वीकार करें
+    // केवल image
     if (!file.type.startsWith('image/')) {
 
-      alert('कृपया केवल फोटो चुनें।');
+      showStatus(
+        'कृपया केवल Image File चुनें।',
+        true
+      );
 
-      this.value = '';
-
+      photoInput.value = '';
       return;
 
     }
 
 
-    // Maximum 5 MB
-    if (file.size > 5 * 1024 * 1024) {
+    // 5 MB Limit
+    const maxSize = 5 * 1024 * 1024;
 
-      alert('फोटो का size 5 MB से कम होना चाहिए।');
+    if (file.size > maxSize) {
 
-      this.value = '';
+      showStatus(
+        'फोटो का size 5 MB से कम होना चाहिए।',
+        true
+      );
 
+      photoInput.value = '';
       return;
 
     }
@@ -110,33 +186,43 @@ document.addEventListener('DOMContentLoaded', async () => {
     selectedFile = file;
 
 
-    // फोटो Preview
+    // Preview
     const reader = new FileReader();
 
     reader.onload = function (event) {
 
-      photoBox.innerHTML =
-        '<img src="' +
-        event.target.result +
-        '" alt="Profile Preview">';
+      pPhoto.innerHTML = '';
+
+      const img = document.createElement('img');
+
+      img.src = event.target.result;
+
+      img.alt = 'Selected Profile Photo';
+
+      pPhoto.appendChild(img);
 
     };
+
 
     reader.readAsDataURL(file);
 
 
-    photoStatus.textContent =
-      'फोटो चुन ली गई है। अब फोटो अपलोड करें।';
+    showStatus(
+      'फोटो चुन ली गई है। अब "फोटो अपलोड करें" दबाएँ।'
+    );
 
   });
 
 
-  // फोटो Upload करें
+  // Upload Photo
   uploadPhotoBtn.addEventListener('click', async function () {
 
     if (!selectedFile) {
 
-      alert('पहले फोटो चुनें।');
+      showStatus(
+        'पहले फोटो चुनें।',
+        true
+      );
 
       return;
 
@@ -147,57 +233,65 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       uploadPhotoBtn.disabled = true;
 
-      uploadPhotoBtn.textContent = 'अपलोड हो रही है...';
+      uploadPhotoBtn.textContent = 'अपलोड हो रहा है...';
 
-      photoStatus.textContent =
-        'कृपया प्रतीक्षा करें, फोटो अपलोड हो रही है...';
+      showStatus('फोटो अपलोड हो रही है...');
 
 
       // File Extension
-      const extension =
-        selectedFile.name.split('.').pop().toLowerCase();
+      const fileExtension =
+        selectedFile.name
+          .split('.')
+          .pop()
+          .toLowerCase();
 
 
-      // Unique File Name
+      // Unique file name
       const fileName =
-        sid +
-        '-' +
+        'profile-' +
         Date.now() +
         '.' +
-        extension;
+        fileExtension;
 
 
-      // Supabase Storage में Upload
+      // Student Folder
+      const filePath =
+        sid + '/' + fileName;
+
+
+      // Upload to Supabase Storage
       const { error: uploadError } =
         await supabaseClient
           .storage
-          .from('student-photos')
+          .from(BUCKET_NAME)
           .upload(
-            fileName,
+            filePath,
             selectedFile,
             {
               cacheControl: '3600',
-              upsert: true
+              upsert: false
             }
           );
 
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        throw uploadError;
+      }
 
 
-      // Public URL प्राप्त करें
+      // Public URL
       const { data: publicUrlData } =
         supabaseClient
           .storage
-          .from('student-photos')
-          .getPublicUrl(fileName);
+          .from(BUCKET_NAME)
+          .getPublicUrl(filePath);
 
 
       const photoUrl =
         publicUrlData.publicUrl;
 
 
-      // Students Table में Photo URL Save करें
+      // Save URL in students table
       const { error: updateError } =
         await supabaseClient
           .from('students')
@@ -207,15 +301,19 @@ document.addEventListener('DOMContentLoaded', async () => {
           .eq('student_id', sid);
 
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        throw updateError;
+      }
 
 
-      photoStatus.textContent =
-        '✅ आपकी Profile Photo सफलतापूर्वक अपडेट हो गई।';
+      showPhoto(
+        photoUrl,
+        pName.textContent
+      );
 
 
-      alert(
-        'Profile Photo सफलतापूर्वक Upload हो गई।'
+      showStatus(
+        '✅ Profile Photo सफलतापूर्वक अपलोड हो गई।'
       );
 
 
@@ -228,14 +326,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       console.error('Photo Upload Error:', error);
 
-      alert(
-        'Photo Upload नहीं हो सकी: ' +
-        (error.message || 'Unknown Error')
+      showStatus(
+        'फोटो अपलोड नहीं हो सकी: ' +
+        (error.message || 'Unknown Error'),
+        true
       );
-
-
-      photoStatus.textContent =
-        '❌ Photo Upload नहीं हो सकी।';
 
 
     } finally {
@@ -250,16 +345,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
 
-  // नाम से Initials बनाएं
-  function getInitials(name) {
-
-    return (name || 'GS')
-      .split(/\s+/)
-      .map(word => word[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase();
-
-  }
+  // शुरू में Profile Load
+  await loadProfile();
 
 });
