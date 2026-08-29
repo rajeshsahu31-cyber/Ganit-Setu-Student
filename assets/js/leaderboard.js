@@ -1,6 +1,17 @@
-const students=[
-['4','कविता','कक्षा 10','17/20','13:20'],['5','राहुल','कक्षा 10','17/20','14:10'],
-['6','नेहा','कक्षा 9','16/20','11:45'],['7','विकास','कक्षा 10','16/20','12:20'],
-['8','पूजा','कक्षा 10','15/20','10:55'],['9','रोहित','कक्षा 9','15/20','13:40'],
-['10','सुमित','कक्षा 10','14/20','12:10']];
-document.getElementById('topTen').innerHTML=students.map(s=>`<div class="rank-row"><b>#${s[0]}</b><span><b>${s[1]}</b><br><small>${s[2]}</small></span><span>स्कोर: ${s[3]}</span><span>समय: ${s[4]}</span><span>विद्यालय: Demo</span></div>`).join('');
+// ============================================
+// GANIT SETU - LEADERBOARD
+// Demo records हटाए गए हैं.
+// आगे वास्तविक Supabase results से data आएगा.
+// ============================================
+
+const topTen = document.getElementById('topTen');
+
+if(topTen){
+  topTen.innerHTML = `
+    <div class="rank-row" style="justify-content:center;text-align:center;padding:24px;">
+      <span>
+        <b>अभी कोई वास्तविक टेस्ट रिकॉर्ड उपलब्ध नहीं है</b><br>
+        <small>विद्यार्थियों के टेस्ट देने के बाद यहाँ Top 10 दिखाई देगा।</small>
+      </span>
+    </div>`;
+}
