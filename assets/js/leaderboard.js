@@ -59,16 +59,34 @@ async function initLeaderboard() {
     return;
   }
 
-  const classRes = await supabaseClient.rpc('get_ganit_student_class', {
-    p_student_code: studentCode
-  });
+  // उसी students table से Class लें, जैसा Profile page करता है।
+  // इससे missing RPC get_ganit_student_class पर निर्भरता नहीं रहेगी।
+  let classLevel = Number(sessionStorage.getItem('ganit_setu_student_class'));
 
-  if (classRes.error || !classRes.data) {
-    podium.innerHTML = '<div class="error-box">Student की Class जानकारी नहीं मिली।</div>';
-    return;
+  if (classLevel !== 9 && classLevel !== 10) {
+    const { data: student, error: studentError } = await supabaseClient
+      .from('students')
+      .select('class_level, full_name')
+      .eq('student_id', studentCode)
+      .maybeSingle();
+
+    if (studentError || !student || !student.class_level) {
+      console.error('Student class load error:', studentError);
+      podium.innerHTML = '<div class="error-box">Student की Class जानकारी नहीं मिली। कृपया दोबारा Login करें।</div>';
+      return;
+    }
+
+    classLevel = Number(student.class_level);
+    sessionStorage.setItem('ganit_setu_student_class', String(classLevel));
+    if (student.full_name) {
+      sessionStorage.setItem('ganit_setu_student_name', student.full_name);
+    }
   }
 
-  const classLevel = Number(classRes.data);
+  if (classLevel !== 9 && classLevel !== 10) {
+    podium.innerHTML = '<div class="error-box">Student की सही Class जानकारी नहीं मिली।</div>';
+    return;
+  }
 
   const { data: tests, error } = await supabaseClient.rpc('get_ganit_leaderboard_tests', {
     p_class_level: classLevel
