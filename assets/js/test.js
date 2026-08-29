@@ -277,7 +277,7 @@ function setupCourseTest() {
 
       currentTestMeta = {
         title: `Course Test Class ${classLevel} Chapter 1-${chapterTo}`,
-        testType: 'chapter_range',
+        testType: 'course_progress',
         classLevel,
         chapterFrom: 1,
         chapterTo,
@@ -339,7 +339,7 @@ function setupChapterTest() {
 
       currentTestMeta = {
         title: `Chapter Test Class ${classLevel} Chapter ${chapter}`,
-        testType: 'chapter_range',
+        testType: 'chapter_practice',
         classLevel,
         chapterFrom: chapter,
         chapterTo: chapter,
