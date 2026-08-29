@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="hi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>अध्याय-वार टेस्ट | गणित सेतु</title><link rel="stylesheet" href="assets/css/style.css"></head>
+<body><header class="simple-header"><a href="test-types.html">← टेस्ट</a><div class="mini-brand">📚 अध्याय-वार टेस्ट</div></header>
+<main class="page narrow"><section class="panel test-panel">
+<div id="courseSetup"><h1>कक्षा में पढ़ाए गए अध्याय तक टेस्ट</h1><p class="muted" id="studentClassInfo">लोड हो रहा है...</p>
+<div class="form-group"><label for="chapterTo">कक्षा में कितने अध्याय तक पढ़ाई हुई है?</label><select id="chapterTo"><option value="">अध्याय चुनें</option></select></div>
+<p class="muted">इस टेस्ट का परिणाम Leaderboard में शामिल होगा।</p><button class="primary-btn" id="startCourseBtn">टेस्ट शुरू करें</button></div>
+<div id="courseTest" style="display:none"><div class="test-meta"><span id="testClass">कक्षा</span><span id="questionCount">प्रश्न</span><span id="timer">⏱️ 00:00</span></div><h1 id="questionNo">प्रश्न</h1><div class="question-box" id="questionText"></div><div class="options" id="options"></div><div class="test-nav"><button class="outline-btn" id="exitTest">बाहर जाएँ</button><button class="primary-btn" id="nextQuestion">अगला प्रश्न →</button></div></div>
+<div id="courseMessage"></div>
+</section></main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/js/supabase.js"></script><script src="assets/js/test.js"></script></body></html>
