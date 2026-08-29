@@ -1,15 +1,40 @@
 <!doctype html>
-<html lang="hi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>लीडरबोर्ड | गणित सेतु</title><link rel="stylesheet" href="assets/css/style.css"></head>
-<body><header class="simple-header"><a href="home.html">← होम</a><div class="mini-brand">🏆 लीडरबोर्ड</div></header>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>लीडरबोर्ड | गणित सेतु</title>
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<header class="simple-header">
+  <a href="home.html">← होम</a>
+  <div class="mini-brand">🏆 लीडरबोर्ड</div>
+</header>
+
 <main class="page">
-<section class="panel"><h1>आज के टॉप विद्यार्थी</h1><p class="muted">रैंक: अधिक स्कोर → कम समय → पहले सबमिट</p>
-<div class="podium" id="podium">
-<div style="width:100%;text-align:center;padding:28px 12px;">
-<b>अभी कोई वास्तविक विजेता उपलब्ध नहीं है</b><br>
-<small>टेस्ट परिणाम आने के बाद यहाँ Top 3 दिखाई देगा।</small>
-</div>
-</div>
-<h2 class="section-title">टॉप 10</h2>
-<div class="list-table" id="topTen"></div>
-</section></main><script src="assets/js/leaderboard.js"></script></body></html>
+<section class="panel">
+  <h1>लीडरबोर्ड</h1>
+  <p class="muted">केवल आपकी कक्षा और चुने गए उसी टेस्ट की Ranking दिखाई जाएगी।</p>
+
+  <div style="margin:16px 0;">
+    <label for="leaderboardTestSelect"><b>टेस्ट चुनें:</b></label><br>
+    <select id="leaderboardTestSelect" style="width:100%;margin-top:8px;padding:12px;">
+      <option value="">टेस्ट लोड हो रहे हैं...</option>
+    </select>
+  </div>
+
+  <div class="podium" id="podium">
+    <div style="width:100%;text-align:center;padding:28px 12px;">लोड हो रहा है...</div>
+  </div>
+
+  <h2 class="section-title">टॉप 10</h2>
+  <div class="list-table" id="topTen"></div>
+</section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase.js"></script>
+<script src="assets/js/leaderboard.js"></script>
+</body>
+</html>
