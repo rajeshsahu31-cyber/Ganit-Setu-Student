@@ -44,11 +44,9 @@ function renderStudentProfile(student){
   setText('studentId', student.student_id);
   setText('studentClass', className);
   setText('schoolName', student.school_name);
-  setText('myRank', '—');
-
   renderStudentPhoto(name, student.photo_url || '');
 
-  // आगे Ranking/Leaderboard Supabase से जुड़ने पर इसी जगह वास्तविक Rank आएगी।
+  // Home Page पर Rank को leaderboard-home.js संभालता है। यहाँ myRank को बदलना नहीं है।
 }
 
 async function loadStudentProfile(){
@@ -98,7 +96,6 @@ async function loadStudentProfile(){
     setText('studentId','—');
     setText('studentClass','—');
     setText('schoolName','—');
-    setText('myRank','—');
 
     const photoBox=document.getElementById('studentPhoto');
     if(photoBox) photoBox.textContent='';
