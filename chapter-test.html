@@ -1,12 +1,1 @@
-<!doctype html>
-<html lang="hi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>अध्याय टेस्ट | गणित सेतु</title><link rel="stylesheet" href="assets/css/style.css"></head>
-<body><header class="simple-header"><a href="test-types.html">← टेस्ट</a><div class="mini-brand">अध्याय टेस्ट</div></header>
-<main class="page narrow"><section class="panel test-panel">
-<div class="test-meta"><span>कक्षा 10</span><span>प्रश्न 1/5</span><span>⏱️ 00:25</span></div>
-<h1>प्रश्न 1</h1><div class="question-box">यदि x + 5 = 12 है, तो x का मान क्या होगा?</div>
-<div class="options">
-<button onclick="selectOption(this)">5</button><button onclick="selectOption(this)">7</button><button onclick="selectOption(this)">12</button><button onclick="selectOption(this)">17</button>
-</div>
-<div class="test-nav"><button class="outline-btn" onclick="location.href='test-types.html'">बाहर जाएँ</button><button class="primary-btn" onclick="location.href='results.html'">अगला प्रश्न →</button></div>
-</section></main><script src="assets/js/test.js"></script></body></html>
+<!doctype html><html lang="hi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>अध्याय टेस्ट | गणित सेतु</title><link rel="stylesheet" href="assets/css/style.css"></head><body><header class="simple-header"><a href="test-types.html">← टेस्ट</a><div class="mini-brand">अध्याय टेस्ट</div></header><main class="page narrow"><section id="chapterSetup" class="panel test-panel"><h1>📘 एक अध्याय का टेस्ट</h1><p id="chapterClassInfo" class="muted"></p><label>अध्याय चुनें</label><select id="chapterSelect" class="answer-input"></select><button id="startChapterBtn" class="primary-btn">टेस्ट शुरू करें</button><div id="chapterMessage"></div></section><section id="chapterTest" class="panel test-panel" style="display:none"><div class="test-meta"><span id="chapterTestTitle"></span><span id="timer">⏱️ 00:00</span></div><div id="questionNo"></div><div id="questionText" class="question-box"></div><div id="options" class="options"></div><div class="test-nav"><button class="outline-btn" onclick="location.href='test-types.html'">बाहर जाएँ</button><button id="nextQuestion" class="primary-btn">अगला प्रश्न →</button></div></section></main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/js/supabase.js"></script><script src="assets/js/test.js"></script></body></html>
