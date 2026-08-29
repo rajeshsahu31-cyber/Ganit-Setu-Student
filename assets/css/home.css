@@ -1,44 +1,311 @@
 
-हाँ जी, बताइए।
+
+Ganit-Setu-Student-main.zip
+Zip Archive
+
+हाँ, बिल्कुल। 👍 मैंने सिर्फ assets/css/home.css का Mobile Responsive वाला हिस्सा बदला है।
+
+आपको पूरी HTML replace करने की जरूरत नहीं है।
+
+आपके home.css में यह पुराना हिस्सा है:
+@media(max-width:700px){
+से लेकर उसके closing } तक।
+
+उस पूरे पुराने Mobile CSS section को हटाकर नीचे वाला नया code लगाना है:
+
+@media (max-width:700px){
+  /* ===== Final Mobile Layout Fix ===== */
+  html,body{width:100%;max-width:100%;overflow-x:hidden;}
+  .gs-header{height:72px;padding:0 16px;position:sticky;top:0;}
+  .gs-brand{min-width:0;gap:10px;}
+  .gs-brand>div:last-child{min-width:0;}
+  .gs-brand strong{font-size:18px;white-space:nowrap;}
+  .gs-brand small{display:block;font-size:11px;white-space:nowrap;}
+
+  .home-container{
+    width:100%;
+    max-width:100%;
+    margin:16px 0 32px;
+    padding:0 12px;
+  }
+
+  .welcome-card{
+    width:100%;
+    min-width:0;
+    margin:0 0 14px;
+    padding:18px;
+    border-radius:18px;
+    gap:12px;
+  }
+
+  .welcome-card>div:first-child{min-width:0;}
+  .welcome-card h2{font-size:22px;line-height:1.25;white-space:normal;}
+  .welcome-card p{font-size:14px;line-height:1.45;}
+  .welcome-badge{width:92px;height:92px;flex:0 0 92px;}
+
+  .student-profile-card{
+    width:100%;
+    min-width:0;
+    padding:14px;
+    gap:10px;
+    align-items:flex-start;
+    flex-wrap:wrap;
+  }
+
+  .student-photo{width:54px;height:54px;flex:0 0 54px;}
+
+  .student-details{
+    min-width:0;
+    flex:1 1 calc(100% - 150px);
+  }
+
+  .student-details h1{
+    font-size:20px;
+    line-height:1.25;
+    overflow-wrap:break-word;
+    word-break:normal;
+  }
+
+  .student-meta{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px 10px;
+    font-size:12px;
+  }
+
+  .student-meta span{
+    min-width:0;
+    overflow-wrap:anywhere;
+  }
+
+  .my-rank-box{
+    min-width:70px;
+    padding:9px 10px;
+    flex:0 0 auto;
+  }
+
+  .my-rank-box strong{font-size:20px;}
+
+  .leaderboard-section{
+    width:100%;
+    min-width:0;
+    margin-top:22px;
+  }
+
+  .section-title{gap:10px;align-items:flex-end;}
+  .section-title>div{min-width:0;}
+  .section-title h2{font-size:24px;}
+  .section-title p{font-size:12px;line-height:1.45;}
+  .section-title a{flex:0 0 auto;white-space:nowrap;}
+
+  /* Top 3 */
+  .top-three{
+    width:100%;
+    display:grid !important;
+    grid-template-columns:1fr !important;
+    gap:10px;
+    align-items:stretch;
+  }
+
+  .champion-card,
+  .champion-card.first{
+    width:100% !important;
+    min-width:0 !important;
+    max-width:100% !important;
+    display:grid !important;
+    grid-template-columns:42px 54px minmax(0,1fr) !important;
+    grid-template-rows:auto auto auto auto;
+    column-gap:10px;
+    row-gap:2px;
+    align-items:center;
+    padding:13px !important;
+    text-align:left !important;
+    overflow:hidden;
+  }
+
+  .champion-card.first{
+    padding-top:13px !important;
+  }
+
+  .champion-card .medal{
+    grid-column:1 !important;
+    grid-row:1 / span 4;
+    font-size:25px;
+    align-self:start;
+  }
+
+  .champion-card .champion-photo{
+    grid-column:2 !important;
+    grid-row:1 / span 4;
+    width:50px;
+    height:50px;
+    margin:0 !important;
+  }
+
+  .champion-card h3{
+    grid-column:3 !important;
+    grid-row:1 !important;
+    min-width:0;
+    margin:0 !important;
+    font-size:17px;
+    line-height:1.3;
+    white-space:normal !important;
+    word-break:normal !important;
+    overflow-wrap:break-word;
+  }
+
+  .champion-card>small{
+    grid-column:3 !important;
+    grid-row:2 !important;
+    min-width:0;
+    margin:0 !important;
+    white-space:normal !important;
+    word-break:normal !important;
+  }
+
+  .champion-card .champion-score{
+    grid-column:3 !important;
+    grid-row:3 !important;
+    min-width:0;
+    margin:0 !important;
+    white-space:normal !important;
+    word-break:normal !important;
+  }
+
+  .champion-card .champion-details{
+    grid-column:3 !important;
+    grid-row:4 !important;
+    min-width:0;
+    margin:3px 0 0 !important;
+    display:grid;
+    gap:2px;
+  }
+
+  .champion-card .champion-details span{
+    min-width:0;
+    font-size:11px;
+    line-height:1.35;
+    white-space:normal !important;
+    word-break:normal !important;
+    overflow-wrap:break-word;
+  }
+
+  /* Top 10 Winner */
+  .winner-slider{
+    width:100%;
+    min-width:0;
+    padding:13px;
+    overflow:hidden;
+  }
+
+  .slider-title{
+    gap:10px;
+    align-items:flex-start;
+  }
+
+  .slider-title small{text-align:right;}
+
+  .winner-track{
+    width:100%;
+    min-width:0;
+    display:flex !important;
+    flex-direction:row !important;
+    gap:10px;
+    overflow:hidden !important;
+  }
+
+  .winner-card{
+    flex:0 0 calc(100vw - 50px) !important;
+    width:calc(100vw - 50px) !important;
+    min-width:0 !important;
+    max-width:calc(100vw - 50px) !important;
+    display:flex !important;
+    align-items:flex-start;
+    gap:9px;
+    padding:12px;
+    overflow:hidden;
+  }
+
+  .winner-number,
+  .mini-photo{
+    flex:0 0 auto;
+  }
+
+  .winner-info{
+    min-width:0 !important;
+    flex:1;
+  }
+
+  .winner-card b,
+  .winner-card small,
+  .winner-score{
+    white-space:normal !important;
+    word-break:normal !important;
+    overflow-wrap:break-word;
+  }
+
+  .main-actions{
+    width:100%;
+    grid-template-columns:1fr;
+    gap:10px;
+    margin-top:18px;
+  }
+
+  .main-action{
+    width:100%;
+    min-width:0;
+    padding:15px;
+  }
+}
+⚠️ महत्वपूर्ण: पुराने @media(max-width:700px) वाले पूरे section को हटाकर ही इसे लगाइए। दोनों को एक साथ रखने पर फिर CSS conflict हो सकता है।
+
+अगर आप चाहें तो मैं अगला कदम यह कर सकता हूँ कि आपकी original home.css में बिल्कुल कहाँ से कहाँ तक हटाना है, वह exact पुराना code भी अलग से बता दूँ, ताकि गलती न हो।
 
 
-मैं आपको जो बोला वो आप कर सकते हैं मेरे लिए आपने सुना नहीं क्या हैलो सुनिए मेरी बात को ध्यान से
+Is code se mujhe home.css ko replace karna he kya
 
-हाँ, बोलिए।
+नहीं ❌ पूरा home.css replace नहीं करना है।
+
+जो code मैंने दिया है, वह सिर्फ Mobile Responsive CSS है।
+
+आपको यह करना है:
+अपनी assets/css/home.css file खोलिए।
+
+उसमें पहले से मौजूद:
+
+@media(max-width:700px){
+   ...
+}
+वाला mobile CSS section ढूँढिए।
+3. उस पुराने conflicting mobile section को हटाइए।
+4. उसकी जगह मेरा दिया हुआ नया code लगाइए।
+5. बाकी पूरा home.css जैसा है वैसा ही रहने दीजिए। ✅
+
+⚠️ लेकिन एक बात महत्वपूर्ण है: आपकी file में संभव है कि एक से ज्यादा @media sections हों। इसलिए बिना देखे सभी @media blocks हटाना सही नहीं होगा।
+
+अगर आप चाहें तो मैं आपकी actual home.css file देखकर exact बता सकता हूँ कि कौन-सा हिस्सा हटाना है और कहाँ नया code लगाना है। इससे गलती नहीं होगी।
 
 
-मैंने जो अभी बोला आपको, वो उसके बारे में आपने कुछ बताया ही नहीं हैलो आप रिस्पॉन्स ही नहीं दे रहे हैं
-मैं कह रहा था कि मैंने मोबाइल में काम कर रहा हूँ तो zip फाइल को सीधे चेंज करना या रिप्लेस करना अब मोबाइल में संभव नहीं है तो क्या आपने इस zip फाइल के जिस भी हिस्से में बदलाव किया है, उस हिस्से को आप मुझे HTML के रूप में दे दीजिए तो मैं उसको अपने GitHub में जाके और रिप्लेस कर दूँगा उस कोड को। जैसे CS में बदलाव किया है तो CS की फाइल दे दीजिए और जिसमें बदलाव नहीं किया है उसे मत दीजिए.
+Aap mujhe pura hi de dijiye me thikbjar lunga
 
-हाँ, अब मैंने दोनों ZIP files को compare करके exactly check किया है। इस बार बिल्कुल साफ़ जवाब:
+हाँ, बिल्कुल। मैंने आपको पूरा नया home.css तैयार करके दे दिया है। ✅
 
-✅ केवल एक ही file में बदलाव किया गया है:
-assets/css/home.css
-❌ किसी HTML file में बदलाव नहीं हुआ।
-❌ किसी JavaScript file में बदलाव नहीं हुआ।
-❌ Supabase की किसी file में बदलाव नहीं हुआ।
-यानि आपको GitHub में सिर्फ पुरानी:
+आपको अब पुराने file के साथ कुछ जोड़ने या हटाने की जरूरत नहीं है।
 
-assets/css/home.css
-को replace करना है।
+क्या करना है:
+यह file डाउनलोड करें:
+पूरा Corrected home.css डाउनलोड करें
 
-मैंने वही modified CSS file अलग निकाल दी है:
+अपने project में जाएँ:
 
-📥 Download modified home.css
-
-मोबाइल से करने का तरीका
-GitHub में जाएँ:
-
-Ganit-Setu-Student
-↓
 assets
-↓
-css
-↓
-home.css
-और वहाँ पुरानी home.css का content हटाकर इस नई file का पूरा code paste/replace कर दें।
+ └── css
+      └── home.css
+पुराने home.css को पूरी तरह replace कर दें। ✅
 
-बस यही एक file बदलनी है। बाकी किसी file को छूना नहीं है। 
+इसमें Desktop का original design भी रखा गया है और Mobile के लिए Top 3/Leaderboard वाला टूटने का issue ठीक किया गया है।
+
+Replace करने के बाद मोबाइल में page खोलकर screenshot भेज दीजिए। अगर कोई हिस्सा फिर भी बिगड़ा होगा, तो उसी actual screenshot के हिसाब से ठीक करेंगे। 
 
 
 home.css
@@ -70,7 +337,21 @@ home.css
 17
 18
 19
-/* नया Home Page - हल्का, साफ और अलग CSS */
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+/* नया Home Page - साफ, responsive और mobile-friendly CSS */
 :root{
   --gs-blue:#2155c7;
   --gs-blue-dark:#173f9c;
@@ -81,11 +362,25 @@ home.css
   --gs-white:#ffffff;
 }
 
-body{background:#f5f7fb;color:var(--gs-text);margin:0;font-family:Arial,'Noto Sans Devanagari',sans-serif}
-.gs-header{height:64px;background:var(--gs-white);border-bottom:1px solid var(--gs-line);display:flex;align-items:center;justify-content:space-between;padding:0 max(18px,5vw);position:sticky;top:0;z-index:10}
-.gs-brand{display:flex;align-items:center;gap:10px}
-.gs-logo{width:38px;height:38px;display:grid;place-items:center;flex:none;overflow:hidden}
-.gs-logo img{width:100%;height:100%;object-fit:contain;display:block;background:transparent}
-.gs-brand strong{display:block;font-size:17px}.gs-brand small{display:block;color:var(--gs-muted);font-size:11px;margin-top:2px}
+*{box-sizing:border-box}
 
-.welcome-card{margin-bottom:14px;background:linear-gradient(135deg,#ffffff,#f2f6ff);border:1px solid var(--gs-line);border-radius:18px;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 8px 25px rgba(24,45,90,.04)}
+html,body{
+  width:100%;
+  max-width:100%;
+  margin:0;
+  overflow-x:hidden;
+}
+
+body{
+  background:#f5f7fb;
+  color:var(--gs-text);
+  font-family:Arial,'Noto Sans Devanagari',sans-serif;
+}
+
+.gs-header{
+  height:64px;
+  background:var(--gs-white);
+  border-bottom:1px solid var(--gs-line);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
