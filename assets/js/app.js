@@ -2,42 +2,56 @@ function getValue(id){
   return document.getElementById(id)?.value.trim() || '';
 }
 
-function syntheticEmail(studentId){
-  return studentId.trim().toLowerCase() + '@student.ganitsetu.app';
-}
-
-function makePassword(){
-  return String(Math.floor(100000 + Math.random() * 900000));
-}
-
 async function demoLogin(){
-  const id=getValue('studentId').toUpperCase();
-  const pass=getValue('password');
+  const rawLogin=getValue('studentId').trim().toUpperCase();
+  const pass=getValue('password').replace(/\D/g,'').slice(0,6);
 
-  if(!/^GS-\d{5,}$/.test(id)){
-    alert('कृपया सही विद्यार्थी आईडी दर्ज करें। उदाहरण: GS-00001');
+  const isStudentId=/^GS-\d{5,}$/.test(rawLogin);
+  const isMobile=/^[6-9]\d{9}$/.test(rawLogin);
+
+  if(!isStudentId && !isMobile){
+    alert('कृपया सही Student ID (GS-00001) या 10 अंकों का Mobile Number दर्ज करें।');
     return;
   }
+
   if(!/^\d{6}$/.test(pass)){
-    alert('कृपया 6 अंकों का पासवर्ड दर्ज करें।');
+    alert('कृपया अपना सही 6 अंकों का पासवर्ड दर्ज करें।');
     return;
   }
 
   const button=document.querySelector('.primary-btn');
-  const oldText=button?.textContent;
-  if(button){button.disabled=true;button.textContent='लॉगिन हो रहा है...';}
+  const oldText=button?.textContent || 'लॉगिन करें';
 
-  const {error}=await supabaseClient.auth.signInWithPassword({
-    email: syntheticEmail(id),
-    password: pass
+  if(button){
+    button.disabled=true;
+    button.textContent='लॉगिन हो रहा है...';
+  }
+
+  const {data,error}=await supabaseClient.rpc('login_student',{
+    p_login:rawLogin,
+    p_password:pass
   });
 
-  if(button){button.disabled=false;button.textContent=oldText||'लॉगिन करें';}
+  if(button){
+    button.disabled=false;
+    button.textContent=oldText;
+  }
 
   if(error){
-    alert('विद्यार्थी आईडी या पासवर्ड गलत है।');
+    alert('लॉगिन नहीं हो सका: '+(error.message || 'कृपया दोबारा प्रयास करें।'));
     return;
   }
+
+  const student=Array.isArray(data) ? data[0] : data;
+
+  if(!student || !student.login_success){
+    alert('Student ID / Mobile Number या Password गलत है।');
+    return;
+  }
+
+  sessionStorage.setItem('ganit_setu_student_id',student.student_id);
+  sessionStorage.setItem('ganit_setu_student_name',student.full_name || '');
+  sessionStorage.setItem('ganit_setu_logged_in','true');
 
   location.href='home.html';
 }
@@ -100,21 +114,10 @@ async function showRegistration(e){
 
   if(error){
     const msg=error.message || 'रजिस्ट्रेशन नहीं हो सका।';
-    const code=error.code || '';
-    const lower=msg.toLowerCase();
-
-    // केवल वास्तविक duplicate mobile error को ही duplicate registration दिखाएं।
-    // RPC/function/configuration errors को गलती से duplicate mobile नहीं दिखाया जाएगा।
-    const isDuplicateMobile =
-      code === '23505' ||
-      lower.includes('mobile already registered') ||
-      lower.includes('students_mobile_key') ||
-      lower.includes('duplicate key value violates unique constraint');
-
-    if(isDuplicateMobile){
+    if(msg.toLowerCase().includes('mobile') || msg.toLowerCase().includes('unique')){
       result.innerHTML='<div class="error-box">इस मोबाइल नंबर से पहले ही रजिस्ट्रेशन हो चुका है।</div>';
     }else{
-      result.innerHTML='<div class="error-box"><b>रजिस्ट्रेशन नहीं हो सका।</b><br>'+msg+'</div>';
+      result.innerHTML='<div class="error-box">रजिस्ट्रेशन नहीं हो सका: '+msg+'</div>';
     }
     return;
   }
@@ -125,6 +128,21 @@ async function showRegistration(e){
   document.getElementById('registrationForm').reset();
   document.getElementById('state').value='MADHYA PRADESH';
 }
+
+
+// Login fields की live formatting
+document.addEventListener('input', (e) => {
+  if(e.target.id==='studentId'){
+    let v=e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g,'');
+    // अगर केवल अंक लिखे जा रहे हैं तो अधिकतम 10 अंक
+    if(/^\d+$/.test(v)) v=v.slice(0,10);
+    // Student ID के लिए सामान्य format
+    e.target.value=v;
+  }
+  if(e.target.id==='password'){
+    e.target.value=e.target.value.replace(/\D/g,'').slice(0,6);
+  }
+});
 
 // Registration fields की live validation: जितने अंक चाहिए उतने ही भरने दें
 document.addEventListener('input', (e) => {
