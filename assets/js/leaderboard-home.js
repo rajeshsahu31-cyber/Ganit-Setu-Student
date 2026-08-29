@@ -1,19 +1,10 @@
-// Home Page के लिए हल्का Demo Data
-// बाद में यही डेटा Supabase से automatic आएगा।
-const winners = [
-  {rank:1,name:"प्रियंका",score:"20/20",className:"10वीं",school:"शासकीय हाई स्कूल",time:"10:18",medal:"🥇"},
-  {rank:2,name:"राहुल",score:"19/20",className:"10वीं",school:"शासकीय हाई स्कूल",time:"10:20",medal:"🥈"},
-  {rank:3,name:"कविता",score:"18/20",className:"10वीं",school:"शासकीय हाई स्कूल",time:"10:22",medal:"🥉"},
-  {rank:4,name:"अमन",score:"18/20",className:"10वीं",school:"शासकीय हाई स्कूल चिरचिरा",time:"10:25"},
-  {rank:5,name:"पूजा",score:"18/20",className:"9वीं",school:"शासकीय हाई स्कूल चिरचिरा",time:"10:27"},
-  {rank:6,name:"नेहा",score:"17/20",className:"10वीं",school:"शासकीय हाई स्कूल चिरचिरा",time:"10:30"},
-  {rank:7,name:"रोहित",score:"17/20",className:"9वीं",school:"शासकीय हाई स्कूल चिरचिरा",time:"10:32"},
-  {rank:8,name:"सोनम",score:"16/20",className:"10वीं",school:"शासकीय हाई स्कूल चिरचिरा",time:"10:35"},
-  {rank:9,name:"विकास",score:"16/20",className:"9वीं",school:"शासकीय हाई स्कूल चिरचिरा",time:"10:38"},
-  {rank:10,name:"रिया",score:"15/20",className:"10वीं",school:"शासकीय हाई स्कूल चिरचिरा",time:"10:40"}
-];
+// ============================================
+// GANIT SETU - HOME WINNER / LEADERBOARD
+// शुरुआत में कोई Demo Data नहीं दिखाया जाएगा.
+// आगे वास्तविक Supabase test results से data आएगा.
+// ============================================
 
-function initials(name){ return name.slice(0,2); }
+const winners = [];
 
 function setYesterdayDate(){
   const el=document.getElementById("testDateText");
@@ -24,68 +15,28 @@ function setYesterdayDate(){
   el.textContent=`${date} की परीक्षा का सर्वश्रेष्ठ प्रदर्शन`;
 }
 
+function emptyMessage(){
+  return `<div style="width:100%;text-align:center;padding:24px 12px;">
+    <b>अभी कोई परिणाम उपलब्ध नहीं है</b>
+    <br><small>वास्तविक विद्यार्थियों के टेस्ट देने के बाद यहाँ रैंकिंग दिखाई जाएगी।</small>
+  </div>`;
+}
+
 function renderTopThree(){
-  const order=[1,0,2]; // 2nd, 1st, 3rd
-  document.getElementById("topThree").innerHTML=order.map(i=>{
-    const w=winners[i];
-    return `<div class="champion-card rank-${w.rank} ${w.rank===1?'first':''}">
-      <div class="medal">${w.medal}</div>
-      <div class="champion-photo">${initials(w.name)}</div>
-      <h3>${w.name}</h3>
-      <small>रैंक #${w.rank}</small>
-      <div class="champion-score">स्कोर: ${w.score}</div>
-      <div class="champion-details">
-        <span>📚 कक्षा: ${w.className}</span>
-        <span>🏫 विद्यालय: ${w.school}</span>
-        <span>⏱️ समय: ${w.time}</span>
-      </div>
-    </div>`;
-  }).join("");
+  const el=document.getElementById("topThree");
+  if(!el) return;
+  el.innerHTML = emptyMessage();
 }
 
 function renderOtherWinners(){
   const track=document.getElementById("winnerTrack");
-  track.innerHTML=winners.slice(3).map(w=>`
-    <article class="winner-card">
-      <div class="winner-number">#${w.rank}</div>
-      <div class="mini-photo">${initials(w.name)}</div>
-      <div class="winner-info">
-        <b>${w.name}</b>
-        <div class="winner-score">स्कोर: ${w.score}</div>
-        <small>कक्षा: ${w.className}</small>
-        <small>विद्यालय: ${w.school}</small>
-        <small>समय: ${w.time}</small>
-      </div>
-    </article>`).join("");
+  if(!track) return;
+  track.innerHTML = "";
 }
 
 function startAutoScroll(){
-  const track=document.getElementById("winnerTrack");
-  if(!track) return;
-
-  // Cards duplicate किए जाते हैं ताकि rotation लगातार चलता रहे।
-  track.innerHTML += track.innerHTML;
-  let paused=false;
-  let speed=0.45; // smooth और पढ़ने योग्य continuous speed
-
-  const tick=()=>{
-    if(!paused){
-      track.scrollLeft += speed;
-      const half=track.scrollWidth/2;
-      if(track.scrollLeft>=half) track.scrollLeft=0;
-    }
-    requestAnimationFrame(tick);
-  };
-  requestAnimationFrame(tick);
-
-  const pause=()=>paused=true;
-  const play=()=>paused=false;
-  track.addEventListener("mouseenter",pause);
-  track.addEventListener("mouseleave",play);
-  track.addEventListener("touchstart",pause,{passive:true});
-  track.addEventListener("touchend",()=>setTimeout(play,1200),{passive:true});
+  // कोई वास्तविक winner data नहीं है, इसलिए auto-scroll अभी बंद रहेगा।
 }
-
 
 setYesterdayDate();
 renderTopThree();
