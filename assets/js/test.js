@@ -126,28 +126,44 @@ async function saveAttempt() {
 
 async function submitTest(testBoxId, messageBoxId) {
   clearInterval(timerHandle);
+
   const btn = $('nextQuestion');
-  if (btn) { btn.disabled = true; btn.textContent = 'Save हो रहा है...'; }
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Save हो रहा है...';
+  }
 
   try {
     const r = await saveAttempt();
-    $(testBoxId).style.display = 'none';
-    $(messageBoxId).innerHTML =
+
+    // Result उसी visible test box में दिखाएँ,
+    // ताकि hidden setup section के कारण Success message गायब न हो।
+    $(testBoxId).innerHTML =
       `<div class="success-box">
-        <b>✓ टेस्ट सफलतापूर्वक Submit हो गया</b><br><br>
+        <h2>✓ टेस्ट सफलतापूर्वक Submit हो गया</h2>
+        <br>
         सही उत्तर: <b>${r.correct}/${r.total}</b><br>
         गलत उत्तर: <b>${r.wrong}</b><br>
         बिना उत्तर: <b>${r.unattempted}</b><br>
         प्रतिशत: <b>${r.percentage}%</b><br><br>
-        <small>✓ Result Supabase में save हो गया है।</small>
+        <small>✓ Result Supabase में save हो गया है।</small><br><br>
+        <button class="primary-btn" onclick="location.href='test-types.html'">
+          टेस्ट पेज पर जाएँ
+        </button>
       </div>`;
+
   } catch (e) {
     console.error(e);
-    $(testBoxId).style.display = 'none';
-    $(messageBoxId).innerHTML =
-      `<div class="error-box">टेस्ट का Result save नहीं हुआ: ${esc(e.message || 'Unknown error')}</div>`;
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'टेस्ट Submit करें'; }
+
+    // Error भी उसी visible test box में दिखेगा।
+    $(testBoxId).innerHTML =
+      `<div class="error-box">
+        <b>टेस्ट का Result save नहीं हुआ</b><br><br>
+        ${esc(e.message || 'Unknown error')}<br><br>
+        <button class="primary-btn" onclick="location.reload()">
+          दोबारा प्रयास करें
+        </button>
+      </div>`;
   }
 }
 
