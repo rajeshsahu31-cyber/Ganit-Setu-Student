@@ -1,1 +1,82 @@
-<!doctype html><html lang="hi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Daily Test | गणित सेतु</title><link rel="stylesheet" href="assets/css/style.css"></head><body><header class="simple-header"><a href="test-types.html">← टेस्ट</a><div class="mini-brand">✏️ Daily Test</div></header><main class="page narrow"><section id="dailySetup" class="panel test-panel"><h1>📅 आज का टेस्ट</h1><p class="muted">आज आपको 2 Questions मिलेंगे।</p><button id="dailyStartBtn" class="primary-btn">Daily Test शुरू करें</button><div id="dailyMessage"></div></section><section id="dailyTest" class="panel test-panel" style="display:none"><div class="test-meta"><span id="dailyTitle"></span><span id="timer">⏱️ 00:00</span></div><div id="questionNo"></div><div id="questionText" class="question-box"></div><div id="options" class="options"></div><div class="test-nav"><button class="outline-btn" onclick="location.href='test-types.html'">बाहर जाएँ</button><button id="nextQuestion" class="primary-btn">अगला प्रश्न →</button></div></section></main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/js/supabase.js"></script><script src="assets/js/test.js"></script></body></html>
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>अध्याय टेस्ट | गणित सेतु</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+</head>
+
+<body>
+
+  <header class="simple-header">
+    <a href="test-types.html">← टेस्ट</a>
+    <div class="mini-brand">अध्याय टेस्ट</div>
+  </header>
+
+  <main class="page narrow">
+
+    <!-- टेस्ट शुरू करने का भाग -->
+    <section id="chapterSetup" class="panel test-panel">
+
+      <h1>📘 एक अध्याय का टेस्ट</h1>
+
+      <p id="chapterClassInfo" class="muted"></p>
+
+      <label>अध्याय चुनें</label>
+
+      <select id="chapterSelect" class="answer-input">
+      </select>
+
+      <button id="startChapterBtn" class="primary-btn">
+        टेस्ट शुरू करें
+      </button>
+
+      <div id="chapterMessage"></div>
+
+    </section>
+
+    <!-- प्रश्न दिखाने का भाग -->
+    <section id="chapterTest"
+             class="panel test-panel"
+             style="display:none">
+
+      <div class="test-meta">
+        <span id="chapterTestTitle"></span>
+        <span id="timer">⏱️ 00:00</span>
+      </div>
+
+      <div id="questionNo"></div>
+
+      <div id="questionText" class="question-box">
+      </div>
+
+      <div id="options" class="options">
+      </div>
+
+      <div class="test-nav">
+
+        <button class="outline-btn"
+                onclick="location.href='test-types.html'">
+          बाहर जाएँ
+        </button>
+
+        <button id="nextQuestion" class="primary-btn">
+          अगला प्रश्न →
+        </button>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Project JavaScript -->
+  <script src="assets/js/supabase.js"></script>
+  <script src="assets/js/test.js"></script>
+
+</body>
+</html>
