@@ -1,6 +1,7 @@
 // ============================================
 // GANIT SETU - HOME LEADERBOARD
-// Full Leaderboard page के उसी Supabase RPC से data
+// Home पर केवल Course Progress leaderboard
+// और सभी विजेताओं की Profile Photo
 // ============================================
 
 let homeWinnerData = [];
@@ -14,6 +15,38 @@ function escapeHomeHtml(v='') {
 function homeInitials(name='विद्यार्थी'){
   return String(name).trim().split(/\s+/).filter(Boolean)
     .map(x => x[0]).join('').slice(0,2).toUpperCase() || 'वि';
+}
+
+function homePhotoHtml(student){
+  const name=student.full_name || 'विद्यार्थी';
+  const photoUrl=student.photo_url || '';
+  if(photoUrl){
+    return `<img src="${escapeHomeHtml(photoUrl)}" alt="${escapeHomeHtml(name)}" onerror="this.remove();this.parentElement.textContent='${escapeHomeHtml(homeInitials(name))}'">`;
+  }
+  return escapeHomeHtml(homeInitials(name));
+}
+
+async function addHomeProfilePhotos(rows){
+  if(!rows || !rows.length) return rows || [];
+
+  const ids=[...new Set(rows.map(r=>String(r.student_code || '').trim()).filter(Boolean))];
+  if(!ids.length) return rows;
+
+  const {data,error}=await supabaseClient
+    .from('students')
+    .select('student_id,photo_url')
+    .in('student_id',ids);
+
+  if(error){
+    console.error('Home profile photos load error:',error);
+    return rows;
+  }
+
+  const photoMap=new Map((data || []).map(s=>[String(s.student_id),s.photo_url || '']));
+  return rows.map(r=>({
+    ...r,
+    photo_url: photoMap.get(String(r.student_code)) || r.photo_url || ''
+  }));
 }
 
 function setHomeLeaderboardMessage(message){
@@ -61,7 +94,7 @@ function renderTopThree(data){
     return `
       <div class="champion-card rank-${rank}${rank===1?' first':''}">
         <div class="medal">${medal}</div>
-        <div class="champion-photo">${escapeHomeHtml(homeInitials(r.full_name))}</div>
+        <div class="champion-photo">${homePhotoHtml(r)}</div>
         <h3>${escapeHomeHtml(r.full_name || 'विद्यार्थी')}</h3>
         <small>${escapeHomeHtml(r.student_code || '')}</small>
         <div class="champion-score">${escapeHomeHtml(score)} • ${escapeHomeHtml(percentage)}%</div>
@@ -85,7 +118,7 @@ function renderOtherWinners(data){
     return `
       <div class="winner-card">
         <div class="winner-number">#${escapeHomeHtml(r.rank_no)}</div>
-        <div class="mini-photo">${escapeHomeHtml(homeInitials(r.full_name))}</div>
+        <div class="mini-photo">${homePhotoHtml(r)}</div>
         <div class="winner-info">
           <b>${escapeHomeHtml(r.full_name || 'विद्यार्थी')}</b>
           <div class="winner-score">${escapeHomeHtml(r.score)}/${escapeHomeHtml(r.total_marks)} • ${escapeHomeHtml(percentage)}%</div>
@@ -170,8 +203,6 @@ async function loadHomeLeaderboard(){
     return;
   }
 
-  // HOME PAGE पर केवल मुख्य संयुक्त Course Progress टेस्ट दिखाना है।
-  // Daily और Chapter Practice टेस्ट केवल "पूरा देखें" वाले पेज में रहेंगे।
   const courseProgressTests = tests.filter(
     test => String(test.test_type || '').toLowerCase() === 'course_progress'
   );
@@ -181,7 +212,6 @@ async function loadHomeLeaderboard(){
     return;
   }
 
-  // उपलब्ध Course Progress tests में सबसे नया Result वाला टेस्ट चुनें।
   let selectedData=null;
 
   for(const test of courseProgressTests){
@@ -206,12 +236,24 @@ async function loadHomeLeaderboard(){
     return;
   }
 
+  // पहले Ranking तुरंत दिखाएँ। Photo loading कभी भी Ranking को रोकना नहीं चाहिए।
   homeWinnerData=selectedData.slice(0,10);
   setHomeDateFromResults(homeWinnerData);
   renderTopThree(homeWinnerData);
   renderOtherWinners(homeWinnerData);
   updateMyRank(homeWinnerData);
   startAutoScroll();
+
+  // उसके बाद Profile Photos अलग से load करें। Error होने पर भी Ranking बनी रहेगी।
+  try{
+    const rowsWithPhotos=await addHomeProfilePhotos(homeWinnerData);
+    homeWinnerData=rowsWithPhotos;
+    renderTopThree(homeWinnerData);
+    renderOtherWinners(homeWinnerData);
+    updateMyRank(homeWinnerData);
+  }catch(photoError){
+    console.error('Home photo enhancement error:',photoError);
+  }
 }
 
 document.addEventListener('DOMContentLoaded',loadHomeLeaderboard);
