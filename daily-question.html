@@ -1,12 +1,1 @@
-<!doctype html>
-<html lang="hi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>आज का सवाल | गणित सेतु</title><link rel="stylesheet" href="assets/css/style.css"></head>
-<body><header class="simple-header"><a href="test-types.html">← टेस्ट</a><div class="mini-brand">✏️ आज का सवाल</div></header>
-<main class="page narrow"><section class="panel test-panel">
-<div class="test-meta"><span>आज का महत्वपूर्ण प्रश्न</span><span id="timer">⏱️ 00:00</span></div>
-<h1>सवाल हल करें</h1><div class="question-box">दो संख्याओं का योग 25 है और एक संख्या 10 है। दूसरी संख्या ज्ञात कीजिए।</div>
-<p class="muted">अपनी कॉपी में हल करें और नीचे अंतिम उत्तर लिखें।</p>
-<input id="finalAnswer" class="answer-input" placeholder="अपना अंतिम उत्तर लिखें">
-<button class="primary-btn" onclick="submitDailyAnswer()">उत्तर जमा करें</button>
-<div id="dailyMessage"></div>
-</section></main><script src="assets/js/test.js"></script></body></html>
+<!doctype html><html lang="hi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Daily Test | गणित सेतु</title><link rel="stylesheet" href="assets/css/style.css"></head><body><header class="simple-header"><a href="test-types.html">← टेस्ट</a><div class="mini-brand">✏️ Daily Test</div></header><main class="page narrow"><section id="dailySetup" class="panel test-panel"><h1>📅 आज का टेस्ट</h1><p class="muted">आज आपको 2 Questions मिलेंगे।</p><button id="dailyStartBtn" class="primary-btn">Daily Test शुरू करें</button><div id="dailyMessage"></div></section><section id="dailyTest" class="panel test-panel" style="display:none"><div class="test-meta"><span id="dailyTitle"></span><span id="timer">⏱️ 00:00</span></div><div id="questionNo"></div><div id="questionText" class="question-box"></div><div id="options" class="options"></div><div class="test-nav"><button class="outline-btn" onclick="location.href='test-types.html'">बाहर जाएँ</button><button id="nextQuestion" class="primary-btn">अगला प्रश्न →</button></div></section></main><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="assets/js/supabase.js"></script><script src="assets/js/test.js"></script></body></html>
