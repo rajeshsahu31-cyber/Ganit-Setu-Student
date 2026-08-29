@@ -8,6 +8,42 @@ function escapeHtml(v='') {
   );
 }
 
+function getInitials(name='विद्यार्थी'){
+  return String(name).trim().split(/\s+/).filter(Boolean)
+    .map(x=>x[0]).join('').slice(0,2).toUpperCase() || 'वि';
+}
+
+function studentPhotoHtml(row, className='leader-photo'){
+  const name=row.full_name || 'विद्यार्थी';
+  if(row.photo_url){
+    return `<div class="${className}"><img src="${escapeHtml(row.photo_url)}" alt="${escapeHtml(name)}" onerror="this.remove();this.parentElement.textContent='${escapeHtml(getInitials(name))}'"></div>`;
+  }
+  return `<div class="${className}">${escapeHtml(getInitials(name))}</div>`;
+}
+
+async function addLeaderboardPhotos(rows){
+  if(!rows || !rows.length) return rows || [];
+
+  const ids=[...new Set(rows.map(r=>String(r.student_code || '').trim()).filter(Boolean))];
+  if(!ids.length) return rows;
+
+  const {data,error}=await supabaseClient
+    .from('students')
+    .select('student_id,photo_url')
+    .in('student_id',ids);
+
+  if(error){
+    console.error('Leaderboard photo load error:',error);
+    return rows;
+  }
+
+  const photoMap=new Map((data || []).map(s=>[String(s.student_id),s.photo_url || '']));
+  return rows.map(r=>({
+    ...r,
+    photo_url:photoMap.get(String(r.student_code)) || r.photo_url || ''
+  }));
+}
+
 function medal(rank) {
   return rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
 }
@@ -32,21 +68,36 @@ async function loadLeaderboard(classLevel, testId) {
     return;
   }
 
-  const top3 = data.slice(0,3);
+  // Ranking पहले तुरंत दिखाएँ। Profile Photo query Ranking को block नहीं करेगी।
+  renderLeaderboardRows(data);
+
+  // Photos बाद में जोड़ें। Photo load fail होने पर भी ranking सुरक्षित रहेगी।
+  try {
+    const rowsWithPhotos = await addLeaderboardPhotos(data);
+    renderLeaderboardRows(rowsWithPhotos);
+  } catch (photoError) {
+    console.error('Leaderboard photo enhancement error:', photoError);
+  }
+}
+
+function renderLeaderboardRows(rowsData) {
+  const top3 = rowsData.slice(0,3);
   podium.innerHTML = top3.map(r => `
     <div class="podium-card">
       <div class="podium-rank">${medal(Number(r.rank_no))}</div>
+      ${studentPhotoHtml(r,'leader-podium-photo')}
       <b>${escapeHtml(r.full_name)}</b>
-      <small>${escapeHtml(r.score)}/${escapeHtml(r.total_marks)} • ${escapeHtml(Number(r.percentage).toFixed(1))}%</small>
+      <small>${escapeHtml(r.score)}/${escapeHtml(r.total_marks)} • ${escapeHtml(Number(r.percentage || 0).toFixed(1))}%</small>
     </div>
   `).join('');
 
-  const rows = data.slice(0,10);
+  const rows = rowsData.slice(0,10);
   topTen.innerHTML = rows.map(r => `
     <div class="rank-row">
-      <span><b>${medal(Number(r.rank_no))}</b></span>
-      <span><b>${escapeHtml(r.full_name)}</b><br><small>${escapeHtml(r.student_code)}</small></span>
-      <span><b>${escapeHtml(r.score)}/${escapeHtml(r.total_marks)}</b><br><small>${escapeHtml(Number(r.percentage).toFixed(1))}%</small></span>
+      <span class="rank-medal"><b>${medal(Number(r.rank_no))}</b></span>
+      ${studentPhotoHtml(r,'leader-row-photo')}
+      <span class="rank-student"><b>${escapeHtml(r.full_name)}</b><br><small>${escapeHtml(r.student_code)}</small></span>
+      <span class="rank-score"><b>${escapeHtml(r.score)}/${escapeHtml(r.total_marks)}</b><br><small>${escapeHtml(Number(r.percentage || 0).toFixed(1))}%</small></span>
     </div>
   `).join('');
 }
@@ -59,8 +110,6 @@ async function initLeaderboard() {
     return;
   }
 
-  // उसी students table से Class लें, जैसा Profile page करता है।
-  // इससे missing RPC get_ganit_student_class पर निर्भरता नहीं रहेगी।
   let classLevel = Number(sessionStorage.getItem('ganit_setu_student_class'));
 
   if (classLevel !== 9 && classLevel !== 10) {
