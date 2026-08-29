@@ -50,40 +50,17 @@ body{background:#f5f7fb;color:var(--gs-text);margin:0;font-family:Arial,'Noto Sa
 .main-action{background:#fff;border:1px solid var(--gs-line);border-radius:17px;padding:17px;display:flex;gap:12px;align-items:center;text-decoration:none;color:var(--gs-text);transition:.2s}.main-action:hover{transform:translateY(-2px);border-color:#b7c7ef}.main-action>span{font-size:27px}.main-action b{display:block;font-size:16px}.main-action small{display:block;color:var(--gs-muted);margin-top:3px;font-size:12px}
 .test-btn{border-left:4px solid #2155c7}.result-btn{border-left:4px solid #258a61}.winner-btn{border-left:4px solid #b88713}
 
+
 /* =========================================================
-   GANIT SETU - FINAL MOBILE RESPONSIVE LAYOUT
-   Top 3:
-            1st (CENTER)
-       2nd (LEFT)   3rd (RIGHT)
+   GANIT SETU - MOBILE TOP 3 (REFERENCE LAYOUT)
+   LEFT: 2nd | CENTER: 1st | RIGHT: 3rd
    ========================================================= */
-@media(max-width:700px){
+@media (max-width:700px){
 
   html,body{
     width:100%;
     max-width:100%;
     overflow-x:hidden;
-  }
-
-  .gs-header{
-    padding:0 4%;
-  }
-
-  .gs-brand small{
-    display:none;
-  }
-
-  .welcome-card{
-    padding:14px;
-    gap:10px;
-  }
-
-  .welcome-card h2{
-    font-size:18px;
-  }
-
-  .welcome-badge{
-    width:42px;
-    height:42px;
   }
 
   .home-container{
@@ -93,234 +70,131 @@ body{background:#f5f7fb;color:var(--gs-text);margin:0;font-family:Arial,'Noto Sa
     padding:0 12px;
   }
 
-  .student-profile-card{
-    width:100%;
-    max-width:100%;
-    min-width:0;
-    align-items:flex-start;
-    gap:11px;
-    padding:14px;
-  }
-
-  .student-photo{
-    width:55px;
-    height:55px;
-    font-size:16px;
-    flex:none;
-  }
-
-  .student-details{
-    min-width:0;
-  }
-
-  .student-details h1{
-    font-size:18px;
-    overflow-wrap:break-word;
-    word-break:normal;
-  }
-
-  .student-meta{
-    font-size:11px;
-    gap:5px 9px;
-  }
-
-  .my-rank-box{
-    padding:8px;
-    min-width:56px;
-  }
-
-  .my-rank-box strong{
-    font-size:18px;
-  }
-
-  /* =====================================================
-     TOP 3 WINNERS - MOBILE
-     1st ऊपर CENTER में
-     2nd नीचे LEFT में
-     3rd नीचे RIGHT में
-     ===================================================== */
-
+  /* ===== TOP 3: तीनों एक ही row में ===== */
   .top-three{
     display:grid !important;
-    grid-template-columns:minmax(0,1fr) minmax(0,1fr) !important;
-    grid-template-areas:
-      "first first"
-      "second third" !important;
-    gap:12px !important;
-    align-items:start !important;
+    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+    gap:8px !important;
+    align-items:stretch !important;
     width:100% !important;
-    max-width:100% !important;
   }
 
-  /* Rank 1 - ऊपर पूरा और CENTER */
+  /* Order बिल्कुल reference image जैसा */
+  .champion-card.rank-2{order:1 !important;}
   .champion-card.rank-1,
-  .champion-card.first{
-    grid-area:first !important;
-    width:88% !important;
-    max-width:88% !important;
-    min-width:0 !important;
-    justify-self:center !important;
-    padding:15px !important;
-    padding-top:15px !important;
+  .champion-card.first{order:2 !important;}
+  .champion-card.rank-3{order:3 !important;}
 
-    display:grid !important;
-    grid-template-columns:42px 58px minmax(0,1fr) !important;
-    column-gap:10px !important;
-    row-gap:3px !important;
-    align-items:start !important;
-    text-align:left !important;
-    overflow:visible !important;
-  }
-
-  .champion-card.rank-1 .medal,
-  .champion-card.first .medal{
-    grid-column:1 !important;
-    grid-row:1 / span 4 !important;
-    font-size:26px !important;
-  }
-
-  .champion-card.rank-1 .champion-photo,
-  .champion-card.first .champion-photo{
-    grid-column:2 !important;
-    grid-row:1 / span 4 !important;
-    width:54px !important;
-    height:54px !important;
-    margin:0 !important;
-  }
-
-  .champion-card.rank-1 h3,
-  .champion-card.first h3{
-    grid-column:3 !important;
-    grid-row:1 !important;
-    margin:0 !important;
-    min-width:0 !important;
-    font-size:17px !important;
-    line-height:1.3 !important;
-  }
-
-  .champion-card.rank-1 > small,
-  .champion-card.first > small{
-    grid-column:3 !important;
-    grid-row:2 !important;
-    min-width:0 !important;
-  }
-
-  .champion-card.rank-1 .champion-score,
-  .champion-card.first .champion-score{
-    grid-column:3 !important;
-    grid-row:3 !important;
-    min-width:0 !important;
-    margin-top:3px !important;
-  }
-
-  .champion-card.rank-1 .champion-details,
-  .champion-card.first .champion-details{
-    grid-column:3 !important;
-    grid-row:4 !important;
-    min-width:0 !important;
-    margin-top:4px !important;
-  }
-
-  /* Rank 2 - नीचे LEFT */
-  .champion-card.rank-2{
-    grid-area:second !important;
-  }
-
-  /* Rank 3 - नीचे RIGHT */
-  .champion-card.rank-3{
-    grid-area:third !important;
-  }
-
-  /* 2nd और 3rd को side-by-side रखने के लिए compact vertical cards */
+  .champion-card,
+  .champion-card.rank-1,
   .champion-card.rank-2,
-  .champion-card.rank-3{
+  .champion-card.rank-3,
+  .champion-card.first{
     width:100% !important;
     max-width:100% !important;
     min-width:0 !important;
-    padding:12px 9px !important;
-    text-align:center !important;
+    height:auto !important;
+    padding:12px 6px !important;
+    margin:0 !important;
     display:flex !important;
     flex-direction:column !important;
     align-items:center !important;
     justify-content:flex-start !important;
-    overflow:visible !important;
+    text-align:center !important;
+    overflow:hidden !important;
   }
 
-  .champion-card.rank-2 .medal,
-  .champion-card.rank-3 .medal{
-    font-size:25px !important;
+  /* 1st बीच वाला थोड़ा highlight, लेकिन size समान */
+  .champion-card.rank-1,
+  .champion-card.first{
+    padding-top:12px !important;
+  }
+
+  .champion-card .medal{
+    font-size:38px !important;
     line-height:1 !important;
-    margin-bottom:4px !important;
+    margin:0 0 8px !important;
   }
 
-  .champion-card.rank-2 .champion-photo,
-  .champion-card.rank-3 .champion-photo{
-    width:52px !important;
-    height:52px !important;
-    margin:4px auto 7px !important;
-    flex:none !important;
-  }
-
-  .champion-card.rank-2 h3,
-  .champion-card.rank-3 h3{
-    width:100% !important;
-    margin:0 0 3px !important;
+  .champion-card .champion-photo{
+    width:48px !important;
+    height:48px !important;
+    min-width:48px !important;
+    margin:0 0 7px !important;
     font-size:16px !important;
-    line-height:1.3 !important;
-    white-space:normal !important;
-    word-break:normal !important;
-    overflow-wrap:break-word !important;
   }
 
-  .champion-card.rank-2 > small,
-  .champion-card.rank-3 > small{
+  .champion-card h3{
     width:100% !important;
-    font-size:12px !important;
-    line-height:1.35 !important;
+    margin:0 0 4px !important;
+    font-size:15px !important;
+    line-height:1.25 !important;
     white-space:normal !important;
-  }
-
-  .champion-card.rank-2 .champion-score,
-  .champion-card.rank-3 .champion-score{
-    width:100% !important;
-    margin-top:6px !important;
-    font-size:13px !important;
-    line-height:1.35 !important;
-  }
-
-  .champion-card.rank-2 .champion-details,
-  .champion-card.rank-3 .champion-details{
-    width:100% !important;
-    min-width:0 !important;
-    margin-top:7px !important;
-    display:grid !important;
-    gap:4px !important;
-    text-align:left !important;
-  }
-
-  .champion-card.rank-2 .champion-details span,
-  .champion-card.rank-3 .champion-details span{
-    display:block !important;
-    min-width:0 !important;
-    font-size:10px !important;
-    line-height:1.35 !important;
-    white-space:normal !important;
-    word-break:normal !important;
     overflow-wrap:anywhere !important;
   }
 
-  /* सभी Top 3 text के लिए कटने से सुरक्षा */
-  .champion-card h3,
-  .champion-card small,
-  .champion-card .champion-score,
-  .champion-card .champion-details,
-  .champion-card .champion-details span{
+  .champion-card > small{
+    display:block !important;
+    width:100% !important;
+    margin:0 0 4px !important;
+    font-size:11px !important;
+    line-height:1.25 !important;
     white-space:normal !important;
-    word-break:normal !important;
-    overflow-wrap:break-word !important;
   }
 
-  /* Top 10 - पहले जैसा horizontal scroll */
+  .champion-card .champion-score{
+    width:100% !important;
+    margin:3px 0 5px !important;
+    font-size:13px !important;
+    line-height:1.25 !important;
+    white-space:normal !important;
+  }
+
+  /* School/detail lines को mobile Top 3 में छुपाया गया है,
+     ताकि cards reference image जैसे compact रहें */
+  .champion-card .champion-details{
+    display:none !important;
+  }
+
+  /* यदि class/time अलग elements में हों तो compact रखें */
+  .champion-card .champion-class,
+  .champion-card .champion-time{
+    width:100% !important;
+    font-size:11px !important;
+    line-height:1.3 !important;
+    white-space:normal !important;
+  }
+
+  /* ===== बहुत छोटे mobile के लिए ===== */
+  @media (max-width:420px){
+    .top-three{gap:7px !important;}
+
+    .champion-card,
+    .champion-card.rank-1,
+    .champion-card.rank-2,
+    .champion-card.rank-3,
+    .champion-card.first{
+      padding:10px 5px !important;
+      border-radius:16px !important;
+    }
+
+    .champion-card .medal{
+      font-size:34px !important;
+      margin-bottom:7px !important;
+    }
+
+    .champion-card .champion-photo{
+      width:46px !important;
+      height:46px !important;
+      min-width:46px !important;
+    }
+
+    .champion-card h3{font-size:14px !important;}
+    .champion-card > small{font-size:10px !important;}
+    .champion-card .champion-score{font-size:12px !important;}
+  }
+
+  /* ===== बाकी page responsive ===== */
   .winner-slider{
     width:100%;
     max-width:100%;
@@ -342,69 +216,11 @@ body{background:#f5f7fb;color:var(--gs-text);margin:0;font-family:Arial,'Noto Sa
     max-width:min(82vw,300px);
   }
 
-  .winner-info{
-    min-width:0;
-  }
-
-  .winner-card b,
-  .winner-card small,
-  .winner-score{
-    white-space:normal !important;
-    word-break:normal !important;
-    overflow-wrap:break-word !important;
-  }
+  .winner-info{min-width:0;}
 
   .main-actions{
     grid-template-columns:1fr;
   }
 
-  .main-action{
-    padding:14px;
-  }
-}
-
-/* बहुत छोटे मोबाइल के लिए */
-@media(max-width:380px){
-  .home-container{
-    padding:0 8px;
-  }
-
-  .top-three{
-    gap:8px !important;
-  }
-
-  .champion-card.rank-1,
-  .champion-card.first{
-    width:94% !important;
-    max-width:94% !important;
-    grid-template-columns:34px 50px minmax(0,1fr) !important;
-    column-gap:7px !important;
-    padding:12px !important;
-  }
-
-  .champion-card.rank-1 .champion-photo,
-  .champion-card.first .champion-photo{
-    width:48px !important;
-    height:48px !important;
-  }
-
-  .champion-card.rank-1 h3,
-  .champion-card.first h3{
-    font-size:15px !important;
-  }
-
-  .champion-card.rank-2,
-  .champion-card.rank-3{
-    padding:10px 7px !important;
-  }
-
-  .champion-card.rank-2 h3,
-  .champion-card.rank-3 h3{
-    font-size:14px !important;
-  }
-
-  .champion-card.rank-2 .champion-details span,
-  .champion-card.rank-3 .champion-details span{
-    font-size:9px !important;
-  }
+  .main-action{padding:14px;}
 }
