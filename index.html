@@ -17,17 +17,19 @@
     </div>
     <section class="form-box">
       <h2>विद्यार्थी लॉगिन</h2>
-      <p class="muted">अपनी विद्यार्थी आईडी और पासवर्ड दर्ज करें</p>
+      <p class="muted">अपनी विद्यार्थी आईडी / मोबाइल नंबर और पासवर्ड दर्ज करें</p>
       <label>विद्यार्थी आईडी</label>
-      <input id="studentId" placeholder="उदाहरण: GS-00001">
+      <input id="studentId" placeholder="GS-00001 या 9876543210" autocomplete="username" style="text-transform:uppercase;">
       <label>6 अंकों का पासवर्ड</label>
-      <input id="password" type="password" inputmode="numeric" maxlength="6" placeholder="••••••">
+      <input id="password" type="password" inputmode="numeric" maxlength="6" pattern="[0-9]{6}" placeholder="••••••" autocomplete="current-password">
       <button class="primary-btn" onclick="demoLogin()">लॉगिन करें</button>
       <p class="center muted">नए विद्यार्थी हैं?</p>
       <a class="outline-btn" href="register.html">रजिस्ट्रेशन करें</a>
-      <p class="demo-note">Demo देखने के लिए कोई भी ID और 6 अंक डालकर Login करें।</p>
+      <p class="demo-note">अपनी विद्यार्थी आईडी या रजिस्टर्ड मोबाइल नंबर और अपना 6 अंकों का पासवर्ड दर्ज करें।</p>
     </section>
   </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/js/supabase.js"></script>
   <script src="assets/js/app.js"></script>
 </body>
 </html>
