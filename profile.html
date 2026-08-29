@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="hi">
+
 <head>
   <meta charset="UTF-8">
 
@@ -18,17 +19,18 @@
     }
 
     .profile-photo-large {
-      width: 96px;
-      height: 96px;
+      width: 110px;
+      height: 110px;
       border-radius: 50%;
       background: var(--soft);
       display: grid;
       place-items: center;
       margin: 0 auto 16px;
       overflow: hidden;
-      font-size: 26px;
+      font-size: 30px;
       font-weight: 800;
       color: var(--blue);
+      border: 3px solid #e7edf8;
     }
 
     .profile-photo-large img {
@@ -41,6 +43,7 @@
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 12px;
+      margin-top: 18px;
     }
 
     .info {
@@ -55,6 +58,39 @@
       margin-bottom: 4px;
     }
 
+    .photo-actions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin: 12px 0 8px;
+    }
+
+    .photo-btn {
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .photo-btn:hover {
+      opacity: 0.9;
+    }
+
+    .photo-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    #photoStatus {
+      min-height: 22px;
+      margin: 8px 0 12px;
+    }
+
     @media (max-width: 600px) {
       .profile-grid {
         grid-template-columns: 1fr;
@@ -66,26 +102,67 @@
 <body>
 
   <header class="simple-header">
+
     <div class="brand-inline">
       <div class="logo-small">GS</div>
       <b>गणित सेतु</b>
     </div>
 
     <a href="home.html">← होम</a>
+
   </header>
+
 
   <main class="page narrow">
 
     <section class="profile-card">
 
-      <div class="profile-photo-large" id="pPhoto">GS</div>
+      <!-- Profile Photo -->
+      <div class="profile-photo-large" id="pPhoto">
+        GS
+      </div>
 
-      <h1 class="center" id="pName">मेरी प्रोफाइल</h1>
+
+      <!-- Photo Buttons -->
+      <div class="photo-actions">
+
+        <label for="photoInput" class="photo-btn">
+          📷 फोटो चुनें
+        </label>
+
+        <input
+          type="file"
+          id="photoInput"
+          accept="image/*"
+          hidden
+        >
+
+        <button
+          type="button"
+          id="uploadPhotoBtn"
+          class="photo-btn"
+        >
+          ⬆️ फोटो अपलोड करें
+        </button>
+
+      </div>
+
+
+      <p id="photoStatus" class="center muted"></p>
+
+
+      <!-- Student Name -->
+      <h1 class="center" id="pName">
+        मेरी प्रोफाइल
+      </h1>
+
 
       <p class="center muted">
-        आप बाद में यहीं से अपनी Profile Photo Upload या Change कर सकेंगे।
+        यहाँ से आप अपनी Profile Photo चुनकर Upload या बाद में Change कर सकते हैं।
       </p>
 
+
+      <!-- Student Information -->
       <div class="profile-grid">
 
         <div class="info">
@@ -93,15 +170,18 @@
           <b id="pId">—</b>
         </div>
 
+
         <div class="info">
           <small>कक्षा</small>
           <b id="pClass">—</b>
         </div>
 
+
         <div class="info">
           <small>विद्यालय</small>
           <b id="pSchool">—</b>
         </div>
+
 
         <div class="info">
           <small>मोबाइल</small>
@@ -114,6 +194,8 @@
 
   </main>
 
+
+  <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <script src="assets/js/supabase.js"></script>
@@ -121,4 +203,5 @@
   <script src="assets/js/profile-page.js"></script>
 
 </body>
+
 </html>
