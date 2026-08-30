@@ -161,24 +161,47 @@ async function getStudentUuidForAttempt() {
   return data.id;
 }
 
-async function ensureTestIsUnlocked(testId) {
-  const studentUuid = await getStudentUuidForAttempt();
+function getAttemptLockKey() {
+  const student = getStudentCode();
+  const m = currentTestMeta || {};
+  return `ganit_setu_lock_${student}_${m.testType}_${m.classLevel}_${m.chapterFrom}_${m.chapterTo}_${m.title}`;
+}
 
+async function ensureTestIsUnlocked(testId) {
+  const localKey = getAttemptLockKey();
+
+  // Fast protection for the same logged-in browser/device.
+  if (localStorage.getItem(localKey) === 'submitted') {
+    throw new Error('🔒 आप यह टेस्ट पहले ही दे चुके हैं। इसे दोबारा नहीं दिया जा सकता।');
+  }
+
+  const studentUuid = await getStudentUuidForAttempt();
+  const m = currentTestMeta;
+
+  // IMPORTANT:
+  // Do not depend only on test_id here. If an old RPC creates another tests.id,
+  // the same logical test must still remain locked.
   const { data, error } = await supabaseClient
     .from('test_attempts')
-    .select('id,status,submitted_at')
-    .eq('student_id', studentUuid)
-    .eq('test_id', Number(testId))
-    .limit(1);
+    .select('id,status,submitted_at,test_id,tests(id,title,test_type,class_level,chapter_from,chapter_to)')
+    .eq('student_id', studentUuid);
 
   if (error) {
     throw new Error('Test lock की जाँच नहीं हो सकी: ' + error.message);
   }
 
-  // कोई भी existing attempt = locked.
-  // इससे submitted और in_progress दोनों cases सुरक्षित रहेंगे.
-  if (data && data.length > 0) {
-    throw new Error('🔒 यह टेस्ट आपके द्वारा पहले ही लिया जा चुका है। इसे दोबारा नहीं दिया जा सकता।');
+  const alreadyAttempted = (data || []).some(a => {
+    const t = a.tests;
+    return t &&
+      String(t.test_type) === String(m.testType) &&
+      Number(t.class_level) === Number(m.classLevel) &&
+      Number(t.chapter_from) === Number(m.chapterFrom) &&
+      Number(t.chapter_to) === Number(m.chapterTo) &&
+      String(t.title) === String(m.title);
+  });
+
+  if (alreadyAttempted) {
+    throw new Error('🔒 आप यह टेस्ट पहले ही दे चुके हैं। इसे दोबारा नहीं दिया जा सकता।');
   }
 
   return true;
@@ -227,6 +250,10 @@ async function submitTest(testBoxId, messageBoxId) {
 
   try {
     const r = await saveAttempt();
+
+    // Second protection layer: after a successful submit, lock this logical test
+    // immediately in the same browser as well.
+    localStorage.setItem(getAttemptLockKey(), 'submitted');
 
     // Result उसी visible test box में दिखाएँ,
     // ताकि hidden setup section के कारण Success message गायब न हो।
