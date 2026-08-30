@@ -164,13 +164,24 @@ async function getStudentUuidForAttempt() {
 function getAttemptLockKey() {
   const student = getStudentCode();
   const m = currentTestMeta || {};
-  return `ganit_setu_lock_${student}_${m.testType}_${m.classLevel}_${m.chapterFrom}_${m.chapterTo}_${m.title}`;
+
+  // Progressive/Course test: once attempted, the ENTIRE progressive test
+  // is locked for this student, regardless of chapter range.
+  if (m.testType === 'course_progress') {
+    return `ganit_setu_lock_${student}_course_progress_${m.classLevel}`;
+  }
+
+  // Chapter practice: each chapter is locked separately.
+  if (m.testType === 'chapter_practice') {
+    return `ganit_setu_lock_${student}_chapter_${m.classLevel}_${m.chapterFrom}`;
+  }
+
+  // Daily: the same daily test/date is locked separately.
+  return `ganit_setu_lock_${student}_${m.testType}_${m.classLevel}_${m.title}`;
 }
 
 async function ensureTestIsUnlocked(testId) {
   const localKey = getAttemptLockKey();
-
-  // Fast protection for the same logged-in browser/device.
   if (localStorage.getItem(localKey) === 'submitted') {
     throw new Error('🔒 आप यह टेस्ट पहले ही दे चुके हैं। इसे दोबारा नहीं दिया जा सकता।');
   }
@@ -178,26 +189,37 @@ async function ensureTestIsUnlocked(testId) {
   const studentUuid = await getStudentUuidForAttempt();
   const m = currentTestMeta;
 
-  // IMPORTANT:
-  // Do not depend only on test_id here. If an old RPC creates another tests.id,
-  // the same logical test must still remain locked.
   const { data, error } = await supabaseClient
     .from('test_attempts')
     .select('id,status,submitted_at,test_id,tests(id,title,test_type,class_level,chapter_from,chapter_to)')
     .eq('student_id', studentUuid);
 
-  if (error) {
-    throw new Error('Test lock की जाँच नहीं हो सकी: ' + error.message);
-  }
+  if (error) throw new Error('Test lock की जाँच नहीं हो सकी: ' + error.message);
 
   const alreadyAttempted = (data || []).some(a => {
     const t = a.tests;
-    return t &&
-      String(t.test_type) === String(m.testType) &&
-      Number(t.class_level) === Number(m.classLevel) &&
-      Number(t.chapter_from) === Number(m.chapterFrom) &&
-      Number(t.chapter_to) === Number(m.chapterTo) &&
-      String(t.title) === String(m.title);
+    if (!t) return false;
+
+    // FIRST / PROGRESSIVE TEST:
+    // Any previous course_progress attempt for this class locks the WHOLE progressive test.
+    if (m.testType === 'course_progress') {
+      return String(t.test_type) === 'course_progress' &&
+             Number(t.class_level) === Number(m.classLevel);
+    }
+
+    // SECOND / CHAPTER TEST:
+    // Only the same chapter is locked.
+    if (m.testType === 'chapter_practice') {
+      return String(t.test_type) === 'chapter_practice' &&
+             Number(t.class_level) === Number(m.classLevel) &&
+             Number(t.chapter_from) === Number(m.chapterFrom);
+    }
+
+    // THIRD / DAILY TEST:
+    // Only the same dated daily test is locked.
+    return String(t.test_type) === String(m.testType) &&
+           Number(t.class_level) === Number(m.classLevel) &&
+           String(t.title) === String(m.title);
   });
 
   if (alreadyAttempted) {
