@@ -14,6 +14,14 @@ function getStudentCode() {
   return sessionStorage.getItem('ganit_setu_student_id') || '';
 }
 
+function getLocalDateKey() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
 function esc(value = '') {
   return String(value).replace(/[&<>"']/g, c =>
     ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])
@@ -81,7 +89,29 @@ function renderQuestion() {
 
 async function createTestAndQuestions() {
   const m = currentTestMeta;
+  if (!m) throw new Error('Test की जानकारी उपलब्ध नहीं है।');
 
+  // सबसे पहले existing test खोजें.
+  // इससे एक ही Course/Chapter/Daily test के लिए हर बार नया test_id नहीं बनेगा.
+  const { data: existing, error: findError } = await supabaseClient
+    .from('tests')
+    .select('id')
+    .eq('title', m.title)
+    .eq('test_type', m.testType)
+    .eq('class_level', m.classLevel)
+    .eq('chapter_from', m.chapterFrom)
+    .eq('chapter_to', m.chapterTo)
+    .limit(1);
+
+  if (findError) {
+    throw new Error('Existing Test की जाँच नहीं हो सकी: ' + findError.message);
+  }
+
+  if (existing && existing.length) {
+    return Number(existing[0].id);
+  }
+
+  // केवल पहली बार नया test बनाया जाएगा.
   const { data: testId, error } = await supabaseClient.rpc('get_or_create_ganit_test', {
     p_title: m.title,
     p_test_type: m.testType,
@@ -91,23 +121,26 @@ async function createTestAndQuestions() {
     p_question_count: questions.length,
     p_duration_minutes: m.durationMinutes || 10
   });
+
   if (error) throw error;
 
   const questionIds = questions.map(q => Number(q.id));
   const { error: syncError } = await supabaseClient.rpc('sync_ganit_test_questions', {
-    p_test_id: testId,
+    p_test_id: Number(testId),
     p_question_ids: questionIds
   });
+
   if (syncError) throw syncError;
 
-  return testId;
+  return Number(testId);
 }
 
 // ============================================
-// TEST LOCK SYSTEM
-// test_attempts.student_id = UUID
-// students.student_id = GS-0001 style student code
-// The database already has UNIQUE(student_id, test_id).
+// PERMANENT TEST LOCK SYSTEM
+// Actual schema:
+// students.id = UUID
+// students.student_id = GS-0001 style code
+// test_attempts has UNIQUE(student_id, test_id)
 // ============================================
 
 async function getStudentUuidForAttempt() {
@@ -128,36 +161,39 @@ async function getStudentUuidForAttempt() {
   return data.id;
 }
 
-async function getCurrentTestIdForLock() {
-  return await createTestAndQuestions();
-}
-
 async function ensureTestIsUnlocked(testId) {
   const studentUuid = await getStudentUuidForAttempt();
 
   const { data, error } = await supabaseClient
     .from('test_attempts')
-    .select('id,status')
+    .select('id,status,submitted_at')
     .eq('student_id', studentUuid)
     .eq('test_id', Number(testId))
     .limit(1);
 
-  if (error) throw error;
+  if (error) {
+    throw new Error('Test lock की जाँच नहीं हो सकी: ' + error.message);
+  }
 
-  if (data && data.length) {
-    throw new Error('🔒 आप यह टेस्ट पहले ही दे चुके हैं। यह टेस्ट दोबारा नहीं दिया जा सकता।');
+  // कोई भी existing attempt = locked.
+  // इससे submitted और in_progress दोनों cases सुरक्षित रहेंगे.
+  if (data && data.length > 0) {
+    throw new Error('🔒 यह टेस्ट आपके द्वारा पहले ही लिया जा चुका है। इसे दोबारा नहीं दिया जा सकता।');
   }
 
   return true;
 }
 
 async function checkLockBeforeStarting() {
-  const testId = await getCurrentTestIdForLock();
+  // हमेशा stable/existing test_id लें.
+  const testId = await createTestAndQuestions();
+
+  // उसी UUID + उसी stable test_id का attempt database में खोजें.
   await ensureTestIsUnlocked(testId);
+
   currentLockedTestId = Number(testId);
   return currentLockedTestId;
 }
-
 
 async function saveAttempt() {
   const studentCode = getStudentCode();
@@ -382,7 +418,7 @@ function setupDailyTest() {
       questions = shuffled.slice(0, DAILY_QUESTION_COUNT);
 
       currentTestMeta = {
-        title: `Daily Test Class ${classLevel} ${new Date().toLocaleDateString('en-CA')}`, 
+        title: `Daily Test Class ${classLevel} ${getLocalDateKey()}`, 
         testType: 'daily',
         classLevel,
         chapterFrom: 1,
