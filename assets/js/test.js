@@ -103,11 +103,31 @@ async function createTestAndQuestions() {
   return testId;
 }
 
+async function ensureTestNotAlreadyAttempted(testId) {
+  const studentCode = getStudentCode();
+  if (!studentCode) throw new Error('Student login information नहीं मिली।');
+
+  const { data, error } = await supabaseClient.rpc('ganit_test_attempt_allowed', {
+    p_student_code: studentCode,
+    p_test_id: Number(testId)
+  });
+
+  if (error) {
+    // SQL function must be installed. Do not silently allow duplicate attempts.
+    throw new Error('One-attempt सुरक्षा जाँच उपलब्ध नहीं है। कृपया दिया गया SQL चलाएँ। ' + error.message);
+  }
+
+  if (data === false) {
+    throw new Error('आप यह टेस्ट पहले ही दे चुके हैं। एक टेस्ट केवल एक बार दिया जा सकता है।');
+  }
+}
+
 async function saveAttempt() {
   const studentCode = getStudentCode();
   if (!studentCode) throw new Error('Student login information नहीं मिली।');
 
   const testId = await createTestAndQuestions();
+  await ensureTestNotAlreadyAttempted(testId);
   const payload = questions.map((q,i) => ({
     question_id: q.id,
     selected_option: answers[i] || null
@@ -322,7 +342,7 @@ function setupDailyTest() {
       questions = shuffled.slice(0, DAILY_QUESTION_COUNT);
 
       currentTestMeta = {
-        title: `Daily Test Class ${classLevel}`,
+        title: `Daily Test Class ${classLevel} ${new Date().toLocaleDateString('en-CA')}`, 
         testType: 'daily',
         classLevel,
         chapterFrom: 1,
