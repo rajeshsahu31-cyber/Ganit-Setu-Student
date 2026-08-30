@@ -21,7 +21,7 @@ function esc(value = '') {
 }
 
 let questions = [], currentIndex = 0, answers = [];
-let startedAt = 0, timerHandle = null, currentTestMeta = null;
+let startedAt = 0, timerHandle = null, currentTestMeta = null, currentLockedTestId = null;
 
 async function loadQuestions(classLevel, chapterNumber = null) {
   let q = supabaseClient
@@ -103,31 +103,67 @@ async function createTestAndQuestions() {
   return testId;
 }
 
-async function ensureTestNotAlreadyAttempted(testId) {
+// ============================================
+// TEST LOCK SYSTEM
+// test_attempts.student_id = UUID
+// students.student_id = GS-0001 style student code
+// The database already has UNIQUE(student_id, test_id).
+// ============================================
+
+async function getStudentUuidForAttempt() {
   const studentCode = getStudentCode();
   if (!studentCode) throw new Error('Student login information नहीं मिली।');
 
-  const { data, error } = await supabaseClient.rpc('ganit_test_attempt_allowed', {
-    p_student_code: studentCode,
-    p_test_id: Number(testId)
-  });
+  const { data, error } = await supabaseClient
+    .from('students')
+    .select('id')
+    .eq('student_id', studentCode)
+    .maybeSingle();
 
-  if (error) {
-    // SQL function must be installed. Do not silently allow duplicate attempts.
-    throw new Error('One-attempt सुरक्षा जाँच उपलब्ध नहीं है। कृपया दिया गया SQL चलाएँ। ' + error.message);
+  if (error) throw error;
+  if (!data || !data.id) {
+    throw new Error('विद्यार्थी का database record नहीं मिला।');
   }
 
-  if (data === false) {
-    throw new Error('आप यह टेस्ट पहले ही दे चुके हैं। एक टेस्ट केवल एक बार दिया जा सकता है।');
-  }
+  return data.id;
 }
+
+async function getCurrentTestIdForLock() {
+  return await createTestAndQuestions();
+}
+
+async function ensureTestIsUnlocked(testId) {
+  const studentUuid = await getStudentUuidForAttempt();
+
+  const { data, error } = await supabaseClient
+    .from('test_attempts')
+    .select('id,status')
+    .eq('student_id', studentUuid)
+    .eq('test_id', Number(testId))
+    .limit(1);
+
+  if (error) throw error;
+
+  if (data && data.length) {
+    throw new Error('🔒 आप यह टेस्ट पहले ही दे चुके हैं। यह टेस्ट दोबारा नहीं दिया जा सकता।');
+  }
+
+  return true;
+}
+
+async function checkLockBeforeStarting() {
+  const testId = await getCurrentTestIdForLock();
+  await ensureTestIsUnlocked(testId);
+  currentLockedTestId = Number(testId);
+  return currentLockedTestId;
+}
+
 
 async function saveAttempt() {
   const studentCode = getStudentCode();
   if (!studentCode) throw new Error('Student login information नहीं मिली।');
 
-  const testId = await createTestAndQuestions();
-  await ensureTestNotAlreadyAttempted(testId);
+  const testId = currentLockedTestId || await createTestAndQuestions();
   const payload = questions.map((q,i) => ({
     question_id: q.id,
     selected_option: answers[i] || null
@@ -253,6 +289,8 @@ function setupCourseTest() {
         durationMinutes: 10
       };
 
+      currentLockedTestId = null;
+      await checkLockBeforeStarting();
       $('courseSetup').style.display = 'none';
       $('courseTest').style.display = 'block';
       if ($('testClass')) $('testClass').textContent = `कक्षा ${classLevel} • अध्याय 1 से ${chapterTo}`;
@@ -306,6 +344,8 @@ function setupChapterTest() {
         durationMinutes: 10
       };
 
+      currentLockedTestId = null;
+      await checkLockBeforeStarting();
       $('chapterSetup').style.display = 'none';
       if ($('chapterTestTitle')) {
         $('chapterTestTitle').textContent = `कक्षा ${classLevel} • अध्याय ${chapter} • 10 Questions`;
@@ -350,6 +390,8 @@ function setupDailyTest() {
         durationMinutes: 10
       };
 
+      currentLockedTestId = null;
+      await checkLockBeforeStarting();
       $('dailySetup').style.display = 'none';
       if ($('dailyTitle')) {
         $('dailyTitle').textContent =
