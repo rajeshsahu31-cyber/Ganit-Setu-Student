@@ -21,12 +21,25 @@ body{background:#f5f7fb;color:var(--gs-text);margin:0;font-family:Arial,'Noto Sa
 .welcome-badge img{width:100%;height:100%;object-fit:contain;display:block}
 
 .home-container{width:min(1080px,92%);margin:24px auto 40px}
-.student-profile-card{background:#fff;border:1px solid var(--gs-line);border-radius:18px;padding:18px;display:flex;align-items:center;gap:16px;box-shadow:0 8px 25px rgba(24,45,90,.05)}
-.student-photo{width:68px;height:68px;border-radius:50%;background:var(--gs-soft);border:3px solid #dbe5ff;color:var(--gs-blue);display:grid;place-items:center;font-weight:800;font-size:20px;overflow:hidden;flex:none}
+.student-profile-card{background:#fff;border:1px solid var(--gs-line);border-radius:18px;padding:16px;display:grid;grid-template-columns:78px minmax(0,1fr);grid-template-areas:"photo details" "photo rank";column-gap:14px;row-gap:10px;align-items:start;box-shadow:0 8px 25px rgba(24,45,90,.05)}
+.student-photo{grid-area:photo;width:72px;height:72px;border-radius:50%;background:var(--gs-soft);border:3px solid #dbe5ff;color:var(--gs-blue);display:grid;place-items:center;font-weight:800;font-size:20px;overflow:hidden;align-self:center}
 .student-photo img{width:100%;height:100%;object-fit:cover}
-.student-details{flex:1}.profile-label{font-size:12px;color:var(--gs-blue);font-weight:700;margin:0 0 3px}.student-details h1{font-size:22px;margin:0 0 8px}
-.student-meta{display:flex;flex-wrap:wrap;gap:8px 16px;color:var(--gs-muted);font-size:13px}
-.my-rank-box{background:var(--gs-soft);border-radius:14px;padding:11px 16px;text-align:center;min-width:85px}.my-rank-box small{display:block;color:var(--gs-muted);font-size:11px}.my-rank-box strong{display:block;color:var(--gs-blue);font-size:23px;margin-top:2px}
+.student-details{grid-area:details;min-width:0;text-align:left}
+.profile-label{font-size:13px;color:var(--gs-blue);font-weight:800;margin:0 0 4px;text-align:left}
+.student-details h1{font-size:21px;margin:0 0 7px;text-align:left;line-height:1.2}
+.student-meta{display:flex;flex-direction:column;align-items:flex-start;gap:5px;color:var(--gs-muted);font-size:12px;text-align:left}
+.student-meta span{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.my-rank-box{grid-area:rank;background:var(--gs-soft);border-radius:12px;padding:9px 13px;text-align:left;width:100%;box-sizing:border-box;border-left:4px solid var(--gs-blue)}
+.my-rank-box small{display:block;color:var(--gs-muted);font-size:11px}
+.my-rank-box strong{display:block;color:var(--gs-blue);font-size:22px;margin-top:1px}
+
+@media(max-width:480px){
+  .student-profile-card{grid-template-columns:70px minmax(0,1fr);grid-template-areas:"photo details" "rank rank";padding:14px;column-gap:12px}
+  .student-photo{width:64px;height:64px;align-self:start}
+  .student-details h1{font-size:19px}
+  .student-meta{font-size:11.5px}
+  .my-rank-box{margin-top:2px}
+}
 
 .leaderboard-section{margin-top:22px}.section-title{display:flex;justify-content:space-between;align-items:end;margin-bottom:14px}.section-title p{margin:0;color:var(--gs-muted);font-size:12px}.section-title h2{margin:4px 0 0;font-size:24px}.section-title a{font-size:13px;color:var(--gs-blue);font-weight:700;text-decoration:none}
 
