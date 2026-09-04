@@ -160,29 +160,6 @@ async function getOrCreateTest() {
   return Number(testId);
 }
 
-async function loadSavedQuestionSet(testId, allQuestions) {
-  const { data, error } = await supabaseClient
-    .from('test_questions')
-    .select('question_id')
-    .eq('test_id', Number(testId));
-  if (error) throw error;
-  if (!data?.length) return [];
-  const ids = new Set(data.map(x => String(x.question_id)));
-  return (allQuestions || []).filter(q => ids.has(String(q.id)));
-}
-
-async function prepareStableQuestionSet(testId, allQuestions, candidateQuestions, expectedCount) {
-  // If this dated test already has a saved set, always restore that exact set.
-  const saved = await loadSavedQuestionSet(testId, allQuestions);
-  if (saved.length >= expectedCount) return saved.slice(0, expectedCount);
-  if (candidateQuestions.length < expectedCount) {
-    throw new Error(`Test के लिए ${expectedCount} Questions उपलब्ध नहीं हैं।`);
-  }
-  // First creation uses the carefully selected candidate set (e.g. 10/chapter).
-  await syncTestQuestionSet(testId, candidateQuestions);
-  return candidateQuestions.slice(0, expectedCount);
-}
-
 async function getStudentUuidForAttempt() {
   const studentCode = getStudentCode();
   if (!studentCode) throw new Error('Student login information नहीं मिली।');
@@ -217,17 +194,35 @@ async function ensureTestIsUnlocked(testId) {
   }
 
   const studentUuid = await getStudentUuidForAttempt();
-  const { data, error } = await supabaseClient
+
+  // Test 1 (course_progress) is one attempt for the whole day, regardless of
+  // how many chapters the student selects. Therefore its lock cannot depend
+  // only on test_id/chapter_to: selecting a different chapter range must not
+  // create a second attempt on the same date.
+  let query = supabaseClient
     .from('test_attempts')
     .select('id,status,submitted_at,test_id,tests(id,title,test_type,class_level,chapter_from,chapter_to)')
-    .eq('student_id', studentUuid)
-    .eq('test_id', Number(testId));
+    .eq('student_id', studentUuid);
 
+  if (m.testType === 'course_progress') {
+    query = query.eq('tests.test_type', 'course_progress')
+      .eq('tests.class_level', m.classLevel);
+  } else {
+    query = query.eq('test_id', Number(testId));
+  }
+
+  const { data, error } = await query;
   if (error) throw new Error('Test lock की जाँच नहीं हो सकी: ' + error.message);
 
-  // The test_id is date-specific. Thus an attempt on yesterday's test does not
-  // lock today's test. This also respects the DB UNIQUE(student_id,test_id).
-  const submitted = (data || []).some(a => String(a.status || '').toLowerCase() === 'submitted' || a.submitted_at);
+  const today = m.dateKey;
+  const submitted = (data || []).some(a => {
+    const statusSubmitted = String(a.status || '').toLowerCase() === 'submitted' || !!a.submitted_at;
+    const title = String(a.tests?.title || '');
+    // Date is embedded in the generated test title as YYYY-MM-DD.
+    const sameDate = title.includes(today);
+    return statusSubmitted && sameDate;
+  });
+
   if (submitted) {
     throw new Error('🔒 आपने आज का यह टेस्ट पहले ही दे दिया है। अगला टेस्ट कल 12:00 बजे के बाद खुलेगा।');
   }
@@ -243,37 +238,44 @@ async function syncTestQuestionSet(testId) {
 }
 
 async function getPreviousDailyQuestionIds(classLevel) {
+  // Primary history source: test_questions linked to previous Daily tests.
+  // If RLS/schema prevents direct reading, the browser history below still
+  // prevents repeats on the same device; DB history remains authoritative when available.
   const used = new Set();
-  const studentUuid = await getStudentUuidForAttempt();
 
-  // Daily history is PER STUDENT, not global for the whole class.
   try {
-    const { data: attempts, error: attemptsError } = await supabaseClient
-      .from('test_attempts')
-      .select('test_id,tests(id,test_type,class_level)')
-      .eq('student_id', studentUuid);
+    const { data: dailyTests, error: testsError } = await supabaseClient
+      .from('tests')
+      .select('id,title')
+      .eq('test_type', 'daily')
+      .eq('class_level', classLevel)
+      .order('id', { ascending: true });
 
-    if (!attemptsError && attempts?.length) {
-      const dailyIds = attempts
-        .filter(a => a.tests && String(a.tests.test_type) === 'daily' && Number(a.tests.class_level) === Number(classLevel))
-        .map(a => Number(a.test_id))
-        .filter(Number.isFinite);
-      if (dailyIds.length) {
+    if (!testsError && dailyTests?.length) {
+      const ids = dailyTests.map(t => Number(t.id)).filter(Number.isFinite);
+      if (ids.length) {
         const { data: mappings, error: mapError } = await supabaseClient
-          .from('test_questions').select('question_id').in('test_id', dailyIds);
-        if (!mapError) (mappings || []).forEach(row => used.add(String(row.question_id)));
+          .from('test_questions')
+          .select('test_id,question_id')
+          .in('test_id', ids);
+        if (!mapError) {
+          (mappings || []).forEach(row => {
+            if (row.question_id != null) used.add(String(row.question_id));
+          });
+        }
       }
     }
   } catch (e) {
     console.warn('Daily DB question history उपलब्ध नहीं हुई:', e);
   }
 
-  // Device-level backup for the same student.
+  // Supplemental per-student browser history.
   const key = `ganit_setu_daily_seen_${getStudentCode()}_${classLevel}`;
   try {
     const local = JSON.parse(localStorage.getItem(key) || '[]');
     local.forEach(id => used.add(String(id)));
   } catch (_) {}
+
   return used;
 }
 
@@ -285,39 +287,35 @@ function rememberDailyQuestions(classLevel, selected) {
   localStorage.setItem(key, JSON.stringify(merged));
 }
 
-function clearDailyHistoryForNewCycle(classLevel) {
-  localStorage.removeItem(`ganit_setu_daily_seen_${getStudentCode()}_${classLevel}`);
-}
-
 async function selectDailyQuestions(classLevel, allQuestions) {
   if (allQuestions.length < DAILY_QUESTION_COUNT) {
     throw new Error(`Daily Test के लिए कम से कम ${DAILY_QUESTION_COUNT} Questions उपलब्ध होने चाहिए।`);
   }
 
   const used = await getPreviousDailyQuestionIds(classLevel);
-  const fresh = allQuestions.filter(q => !used.has(String(q.id)));
+  let fresh = allQuestions.filter(q => !used.has(String(q.id)));
 
-  if (fresh.length >= DAILY_QUESTION_COUNT) return sample(fresh, DAILY_QUESTION_COUNT);
+  // If fewer than five unseen questions remain, finish the current cycle with
+  // unseen questions first, then begin a new shuffled cycle from the full pool.
+  if (fresh.length >= DAILY_QUESTION_COUNT) {
+    return sample(fresh, DAILY_QUESTION_COUNT);
+  }
 
-  // Finish the current cycle with the remaining unseen questions, then fill
-  // the rest from a newly shuffled cycle.
-  const tail = sample(fresh, fresh.length);
-  const tailIds = new Set(tail.map(q => String(q.id)));
-  const remainder = allQuestions.filter(q => !tailIds.has(String(q.id)));
-  const needed = DAILY_QUESTION_COUNT - tail.length;
+  const selected = sample(fresh, fresh.length);
+  const selectedIds = new Set(selected.map(q => String(q.id)));
+  const remainder = allQuestions.filter(q => !selectedIds.has(String(q.id)));
+  const needed = DAILY_QUESTION_COUNT - selected.length;
+  let candidate = [...selected, ...sample(remainder, needed)];
 
-  clearDailyHistoryForNewCycle(classLevel);
+  // New cycle: reset only after the old pool is exhausted. Avoid returning the
+  // exact previous 5-question set in the same order when a new cycle starts.
   const lastKey = `ganit_setu_daily_last_set_${getStudentCode()}_${classLevel}`;
   let last = [];
   try { last = JSON.parse(localStorage.getItem(lastKey) || '[]').map(String); } catch (_) {}
-
-  let candidate = [...tail, ...sample(remainder, needed)];
-  if (candidate.length < DAILY_QUESTION_COUNT) candidate = sample(allQuestions, DAILY_QUESTION_COUNT);
-
-  const sameSet = candidate.length === last.length && candidate.every(q => last.includes(String(q.id)));
-  if (sameSet && allQuestions.length > DAILY_QUESTION_COUNT) {
-    const alternatives = allQuestions.filter(q => !last.includes(String(q.id)));
-    if (alternatives.length >= DAILY_QUESTION_COUNT) candidate = sample(alternatives, DAILY_QUESTION_COUNT);
+  const sameSet = a => Array.isArray(last) && last.length === DAILY_QUESTION_COUNT &&
+    a.length === DAILY_QUESTION_COUNT && a.every(id => last.includes(String(id)));
+  if (sameSet(candidate.map(q => q.id))) {
+    candidate = sample(allQuestions, DAILY_QUESTION_COUNT);
   }
   return candidate;
 }
@@ -357,7 +355,6 @@ async function submitTest(testBoxId) {
     if (currentTestMeta?.testType === 'daily') {
       rememberDailyQuestions(currentTestMeta.classLevel, questions);
       localStorage.setItem(`ganit_setu_daily_last_set_${getStudentCode()}_${currentTestMeta.classLevel}`, JSON.stringify(questions.map(q => q.id)));
-      localStorage.removeItem(`ganit_setu_daily_draft_${getStudentCode()}_${currentTestMeta.classLevel}_${currentTestMeta.dateKey}`);
     }
 
     $(testBoxId).innerHTML = `
@@ -435,8 +432,10 @@ function setupCourseTest() {
         dateKey: getIndiaDateKey(), durationMinutes: 10
       };
       currentLockedTestId = await getOrCreateTest();
+      // Check today's Course Test lock BEFORE touching the saved question set.
+      // This keeps a submitted day's questions fixed for review and prevents
+      // a second chapter-range selection from bypassing the daily lock.
       await ensureTestIsUnlocked(currentLockedTestId);
-      questions = await prepareStableQuestionSet(currentLockedTestId, all, questions, chapterTo * QUESTIONS_PER_CHAPTER);
 
       $('courseSetup').style.display = 'none';
       $('courseTest').style.display = 'block';
@@ -482,8 +481,8 @@ function setupChapterTest() {
         dateKey: getIndiaDateKey(), durationMinutes: 10
       };
       currentLockedTestId = await getOrCreateTest();
+      await syncTestQuestionSet(currentLockedTestId);
       await ensureTestIsUnlocked(currentLockedTestId);
-      questions = await prepareStableQuestionSet(currentLockedTestId, pool, questions, QUESTIONS_PER_CHAPTER);
 
       $('chapterSetup').style.display = 'none';
       if ($('chapterTestTitle')) $('chapterTestTitle').textContent = `कक्षा ${classLevel} • अध्याय ${chapter} • 10 Questions`;
@@ -501,40 +500,39 @@ function setupDailyTest() {
   $('dailyStartBtn').onclick = async () => {
     const message = $('dailyMessage');
     const classLevel = getClassLevel();
-    const dateKey = getIndiaDateKey();
-    const draftKey = `ganit_setu_daily_draft_${getStudentCode()}_${classLevel}_${dateKey}`;
 
     try {
       const all = await loadQuestions(classLevel);
-      if (all.length < DAILY_QUESTION_COUNT) {
-        throw new Error(`Daily Test के लिए कम से कम ${DAILY_QUESTION_COUNT} Questions उपलब्ध होने चाहिए।`);
-      }
+      questions = await selectDailyQuestions(classLevel, all);
 
       currentTestMeta = {
-        title: `Daily Test Class ${classLevel} ${dateKey}`,
+        title: `Daily Test Class ${classLevel} ${getIndiaDateKey()}`,
         testType: 'daily', classLevel, chapterFrom: 1, chapterTo: MAX_CHAPTERS[classLevel],
-        dateKey, durationMinutes: 10
+        dateKey: getIndiaDateKey(), durationMinutes: 10
       };
-
-      let draftIds = [];
-      try { draftIds = JSON.parse(localStorage.getItem(draftKey) || '[]').map(String); } catch (_) {}
-      questions = draftIds.length === DAILY_QUESTION_COUNT
-        ? all.filter(q => draftIds.includes(String(q.id)))
-        : [];
-      if (questions.length !== DAILY_QUESTION_COUNT) questions = await selectDailyQuestions(classLevel, all);
-
       currentLockedTestId = await getOrCreateTest();
+
+      // A dated test already has its own question set. If it exists, the
+      // database mapping is the authoritative set for that date.
+      const { data: mapped, error: mappedError } = await supabaseClient
+        .from('test_questions')
+        .select('question_id')
+        .eq('test_id', currentLockedTestId);
+
+      if (!mappedError && mapped?.length >= DAILY_QUESTION_COUNT) {
+        const ids = new Set(mapped.map(x => String(x.question_id)));
+        questions = all.filter(q => ids.has(String(q.id))).slice(0, DAILY_QUESTION_COUNT);
+      } else {
+        await syncTestQuestionSet(currentLockedTestId);
+      }
+
       await ensureTestIsUnlocked(currentLockedTestId);
+      if (questions.length !== DAILY_QUESTION_COUNT) throw new Error('Daily Test में 5 प्रश्न तैयार नहीं हो सके।');
 
-      const saved = await loadSavedQuestionSet(currentLockedTestId, all);
-      if (saved.length >= DAILY_QUESTION_COUNT) questions = saved.slice(0, DAILY_QUESTION_COUNT);
-      else await syncTestQuestionSet(currentLockedTestId, questions);
-
-      localStorage.setItem(draftKey, JSON.stringify(questions.map(q => q.id)));
       $('dailySetup').style.display = 'none';
       if ($('dailyTitle')) $('dailyTitle').textContent = `आज का Daily Test • कक्षा ${classLevel} • ${DAILY_QUESTION_COUNT} Questions`;
       beginTest('dailyTest');
-    } catch(e) {
+    } catch (e) {
       message.innerHTML = `<div class="error-box">${esc(e.message)}</div>`;
     }
   };
