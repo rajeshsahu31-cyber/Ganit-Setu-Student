@@ -188,6 +188,8 @@ async function ensureTestIsUnlocked(testId) {
   const m = currentTestMeta;
   if (!m) throw new Error('Test की जानकारी उपलब्ध नहीं है।');
 
+  // Browser lock is only a fast local guard. The database check below is
+  // authoritative, so changing chapter selection cannot bypass Test 1.
   const localKey = getBrowserLockKey();
   if (localStorage.getItem(localKey) === 'submitted') {
     throw new Error('🔒 आपने आज का यह टेस्ट पहले ही दे दिया है। अगला टेस्ट कल 12:00 बजे के बाद खुलेगा।');
@@ -195,40 +197,63 @@ async function ensureTestIsUnlocked(testId) {
 
   const studentUuid = await getStudentUuidForAttempt();
 
-  // Test 1 (course_progress) is one attempt for the whole day, regardless of
-  // how many chapters the student selects. Therefore its lock cannot depend
-  // only on test_id/chapter_to: selecting a different chapter range must not
-  // create a second attempt on the same date.
-  let query = supabaseClient
+  // IMPORTANT: Test 1 is one attempt per student per DATE, regardless of the
+  // selected chapter range. Do NOT use test_id/chapter_to as the lock key.
+  // We first fetch this student's submitted attempts, then fetch their test
+  // definitions separately. This avoids relying on a fragile nested relation
+  // filter such as tests.test_type.
+  const { data: attempts, error: attemptError } = await supabaseClient
     .from('test_attempts')
-    .select('id,status,submitted_at,test_id,tests(id,title,test_type,class_level,chapter_from,chapter_to)')
-    .eq('student_id', studentUuid);
+    .select('id,test_id,status,submitted_at')
+    .eq('student_id', studentUuid)
+    .eq('status', 'submitted');
 
-  if (m.testType === 'course_progress') {
-    query = query.eq('tests.test_type', 'course_progress')
-      .eq('tests.class_level', m.classLevel);
-  } else {
-    query = query.eq('test_id', Number(testId));
+  if (attemptError) {
+    throw new Error('Test lock की जाँच नहीं हो सकी: ' + attemptError.message);
   }
 
-  const { data, error } = await query;
-  if (error) throw new Error('Test lock की जाँच नहीं हो सकी: ' + error.message);
+  if (!attempts?.length) return true;
 
-  const today = m.dateKey;
-  const submitted = (data || []).some(a => {
-    const statusSubmitted = String(a.status || '').toLowerCase() === 'submitted' || !!a.submitted_at;
-    const title = String(a.tests?.title || '');
-    // Date is embedded in the generated test title as YYYY-MM-DD.
-    const sameDate = title.includes(today);
-    return statusSubmitted && sameDate;
+  const testIds = [...new Set(attempts.map(a => Number(a.test_id)).filter(Boolean))];
+  if (!testIds.length) return true;
+
+  const { data: tests, error: testError } = await supabaseClient
+    .from('tests')
+    .select('id,test_type,class_level,title,chapter_from,chapter_to')
+    .in('id', testIds);
+
+  if (testError) {
+    throw new Error('Test की जानकारी नहीं मिल सकी: ' + testError.message);
+  }
+
+  const testMap = new Map((tests || []).map(t => [Number(t.id), t]));
+  const today = m.dateKey || getIndiaDateKey();
+
+  const submittedToday = attempts.some(a => {
+    const t = testMap.get(Number(a.test_id));
+    if (!t) return false;
+
+    // Only the same class + same test type can lock this test.
+    if (String(t.test_type || '').toLowerCase() !== String(m.testType || '').toLowerCase()) return false;
+    if (Number(t.class_level) !== Number(m.classLevel)) return false;
+
+    // Prefer the actual submitted_at timestamp. This makes the lock truly
+    // date-based and does not depend on the test title.
+    if (a.submitted_at) {
+      return getIndiaDateKey(new Date(a.submitted_at)) === today;
+    }
+
+    // Backward-compatible fallback for older records that may not have
+    // submitted_at populated: the generated test title contains YYYY-MM-DD.
+    return String(t.title || '').includes(today);
   });
 
-  if (submitted) {
+  if (submittedToday) {
     throw new Error('🔒 आपने आज का यह टेस्ट पहले ही दे दिया है। अगला टेस्ट कल 12:00 बजे के बाद खुलेगा।');
   }
+
   return true;
 }
-
 async function syncTestQuestionSet(testId) {
   const { error } = await supabaseClient.rpc('sync_ganit_test_questions', {
     p_test_id: Number(testId),
