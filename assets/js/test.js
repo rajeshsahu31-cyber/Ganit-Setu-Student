@@ -185,71 +185,88 @@ function getBrowserLockKey() {
 }
 
 async function ensureTestIsUnlocked(testId) {
+  const localKey = getBrowserLockKey();
   const m = currentTestMeta;
   if (!m) throw new Error('Test की जानकारी उपलब्ध नहीं है।');
 
-  // Browser lock is only a fast local guard. The database check below is
-  // authoritative, so changing chapter selection cannot bypass Test 1.
-  const localKey = getBrowserLockKey();
+  // Browser-side protection for the current student + test + date.
   if (localStorage.getItem(localKey) === 'submitted') {
     throw new Error('🔒 आपने आज का यह टेस्ट पहले ही दे दिया है। अगला टेस्ट कल 12:00 बजे के बाद खुलेगा।');
   }
 
   const studentUuid = await getStudentUuidForAttempt();
 
-  // IMPORTANT: Test 1 is one attempt per student per DATE, regardless of the
-  // selected chapter range. Do NOT use test_id/chapter_to as the lock key.
-  // We first fetch this student's submitted attempts, then fetch their test
-  // definitions separately. This avoids relying on a fragile nested relation
-  // filter such as tests.test_type.
-  const { data: attempts, error: attemptError } = await supabaseClient
-    .from('test_attempts')
-    .select('id,test_id,status,submitted_at')
-    .eq('student_id', studentUuid)
-    .eq('status', 'submitted');
+  // TEST 1 (Course/selected-chapters): one attempt per student per DATE,
+  // regardless of how many chapters were selected. Do NOT use the test_id or
+  // chapter range here because changing 1-3 to 1-5 must not bypass today's lock.
+  if (m.testType === 'course_progress') {
+    const { data, error } = await supabaseClient
+      .from('test_attempts')
+      .select('id,status,submitted_at,test_id,tests(id,test_type,class_level)')
+      .eq('student_id', studentUuid);
 
-  if (attemptError) {
-    throw new Error('Test lock की जाँच नहीं हो सकी: ' + attemptError.message);
-  }
+    if (error) throw new Error('Test lock की जाँच नहीं हो सकी: ' + error.message);
 
-  if (!attempts?.length) return true;
+    const today = m.dateKey || getIndiaDateKey();
+    const attemptedToday = (data || []).some(a => {
+      const t = a.tests;
+      if (!t || String(t.test_type) !== 'course_progress') return false;
+      if (Number(t.class_level) !== Number(m.classLevel)) return false;
+      if (!a.submitted_at) return false;
+      return getIndiaDateKey(new Date(a.submitted_at)) === today &&
+             String(a.status || '').toLowerCase() === 'submitted';
+    });
 
-  const testIds = [...new Set(attempts.map(a => Number(a.test_id)).filter(Boolean))];
-  if (!testIds.length) return true;
-
-  const { data: tests, error: testError } = await supabaseClient
-    .from('tests')
-    .select('id,test_type,class_level,title,chapter_from,chapter_to')
-    .in('id', testIds);
-
-  if (testError) {
-    throw new Error('Test की जानकारी नहीं मिल सकी: ' + testError.message);
-  }
-
-  const testMap = new Map((tests || []).map(t => [Number(t.id), t]));
-  const today = m.dateKey || getIndiaDateKey();
-
-  const submittedToday = attempts.some(a => {
-    const t = testMap.get(Number(a.test_id));
-    if (!t) return false;
-
-    // Only the same class + same test type can lock this test.
-    if (String(t.test_type || '').toLowerCase() !== String(m.testType || '').toLowerCase()) return false;
-    if (Number(t.class_level) !== Number(m.classLevel)) return false;
-
-    // Prefer the actual submitted_at timestamp. This makes the lock truly
-    // date-based and does not depend on the test title.
-    if (a.submitted_at) {
-      return getIndiaDateKey(new Date(a.submitted_at)) === today;
+    if (attemptedToday) {
+      throw new Error('🔒 आपने आज का Test 1 पहले ही दे दिया है। कल 12:00 बजे के बाद नया Test 1 खुलेगा।');
     }
 
-    // Backward-compatible fallback for older records that may not have
-    // submitted_at populated: the generated test title contains YYYY-MM-DD.
-    return String(t.title || '').includes(today);
-  });
+    return true;
+  }
 
-  if (submittedToday) {
-    throw new Error('🔒 आपने आज का यह टेस्ट पहले ही दे दिया है। अगला टेस्ट कल 12:00 बजे के बाद खुलेगा।');
+  // TEST 2 (Chapter-wise): preserve the existing per-chapter behavior,
+  // but the lock applies only to today's attempt.
+  if (m.testType === 'chapter_practice') {
+    const { data, error } = await supabaseClient
+      .from('test_attempts')
+      .select('id,status,submitted_at,test_id,tests(id,test_type,class_level,chapter_from,chapter_to)')
+      .eq('student_id', studentUuid);
+
+    if (error) throw new Error('Test lock की जाँच नहीं हो सकी: ' + error.message);
+
+    const today = m.dateKey || getIndiaDateKey();
+    const attemptedToday = (data || []).some(a => {
+      const t = a.tests;
+      if (!t || String(t.test_type) !== 'chapter_practice') return false;
+      if (Number(t.class_level) !== Number(m.classLevel)) return false;
+      if (Number(t.chapter_from) !== Number(m.chapterFrom)) return false;
+      if (!a.submitted_at) return false;
+      return getIndiaDateKey(new Date(a.submitted_at)) === today &&
+             String(a.status || '').toLowerCase() === 'submitted';
+    });
+
+    if (attemptedToday) {
+      throw new Error('🔒 आपने आज इस अध्याय का टेस्ट पहले ही दे दिया है। कल 12:00 बजे के बाद फिर से दे सकेंगे।');
+    }
+
+    return true;
+  }
+
+  // TEST 3 (Daily): preserve the existing date-specific behavior.
+  const { data, error } = await supabaseClient
+    .from('test_attempts')
+    .select('id,status,submitted_at,test_id')
+    .eq('student_id', studentUuid)
+    .eq('test_id', Number(testId));
+
+  if (error) throw new Error('Test lock की जाँच नहीं हो सकी: ' + error.message);
+
+  const submitted = (data || []).some(a =>
+    String(a.status || '').toLowerCase() === 'submitted' || !!a.submitted_at
+  );
+
+  if (submitted) {
+    throw new Error('🔒 आपने आज का Daily Test पहले ही दे दिया है। अगला Daily Test कल 12:00 बजे के बाद खुलेगा।');
   }
 
   return true;
@@ -457,9 +474,7 @@ function setupCourseTest() {
         dateKey: getIndiaDateKey(), durationMinutes: 10
       };
       currentLockedTestId = await getOrCreateTest();
-      // Check today's Course Test lock BEFORE touching the saved question set.
-      // This keeps a submitted day's questions fixed for review and prevents
-      // a second chapter-range selection from bypassing the daily lock.
+      await syncTestQuestionSet(currentLockedTestId);
       await ensureTestIsUnlocked(currentLockedTestId);
 
       $('courseSetup').style.display = 'none';
