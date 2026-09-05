@@ -1,0 +1,21 @@
+/* Ganit Setu â€” Common Bottom Navigation */
+:root{--bottom-nav-height:82px;}
+html{padding-bottom:0!important;}
+body{padding-bottom:calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + 14px)!important;}
+.bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:99999;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:100%;box-sizing:border-box;background:#fff;border-top:1px solid #dfe7f2;box-shadow:0 -5px 18px rgba(15,23,42,.10);padding:6px 5px calc(6px + env(safe-area-inset-bottom));}
+.bottom-nav a{min-width:0;min-height:66px;text-decoration:none;color:#66758a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border-radius:18px;padding:5px 2px;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+.bottom-nav a:active{transform:scale(.97);}
+.bottom-nav a.active{background:#eef6ff;color:#1266d6;}
+.bottom-nav .nav-icon{height:27px;display:flex;align-items:center;justify-content:center;font-size:25px;line-height:1;font-family:Arial,sans-serif;}
+.bottom-nav .nav-label{font-size:13px;font-weight:700;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+@media (max-width:380px){
+  :root{--bottom-nav-height:76px;}
+  body{padding-bottom:calc(var(--bottom-nav-height) + env(safe-area-inset-bottom) + 12px)!important;}
+  .bottom-nav{padding-left:3px;padding-right:3px;}
+  .bottom-nav a{min-height:61px;border-radius:15px;gap:2px;padding-left:1px;padding-right:1px;}
+  .bottom-nav .nav-icon{font-size:22px;height:24px;}
+  .bottom-nav .nav-label{font-size:11px;}
+}
+@media (min-width:721px){
+  .bottom-nav{left:50%;right:auto;transform:translateX(-50%);width:min(100%,720px);border:1px solid #dfe7f2;border-bottom:0;border-radius:18px 18px 0 0;}
+}
