@@ -1,5 +1,4 @@
 (function(){
-  const sb = window.supabaseClient;
   const $ = id => document.getElementById(id);
   const esc = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
   const chapterMax = cls => Number(cls)===9 ? 12 : 14;
@@ -14,7 +13,7 @@
   async function load(){
     const code=sessionStorage.getItem('ganit_setu_student_id');
     if(!code){ showError('कृपया पहले Student Login करें।'); return; }
-    if(!window.supabaseClient){ showError('Supabase connection उपलब्ध नहीं है।'); return; }
+    if(typeof supabaseClient === 'undefined'){ showError('Supabase connection उपलब्ध नहीं है।'); return; }
 
     // पहले existing Results RPC से real data लें। यही Student Results page भी उपयोग करता है।
     const {data:rows,error}=await supabaseClient.rpc('get_ganit_student_results',{p_student_code:code});
