@@ -362,42 +362,80 @@ async function openReview(index){
   try{
     const student=await getStudent();
     const testId=await resolveTestId(db,r,student);
+    const score=Number(r.score??r.correct_answers??0);
+    const fallbackTotal=Number(r.total_marks??r.total_questions??0);
+    document.getElementById('reviewMeta').innerHTML=`<b>${esc(testLabel(r))}</b><br>तारीख: ${formatDMY(document.getElementById('date').value)} &nbsp; | &nbsp; अंक: <b>${score}/${fallbackTotal}</b>`;
+
     if(!testId){
-      document.getElementById('reviewMeta').innerHTML=`<b>${esc(testLabel(r))}</b><br>तारीख: ${formatDMY(document.getElementById('date').value)} &nbsp; | &nbsp; अंक: <b>${Number(r.score??r.correct_answers??0)}/${Number(r.total_marks??r.total_questions??0)}</b>`;
       qbox.innerHTML='<div class="empty">इस Result का test ID नहीं मिला, इसलिए प्रश्नपत्र Review उपलब्ध नहीं है।</div>';
       return;
     }
 
-    const [tqRes,ansRes]=await Promise.all([
-      db.from('test_questions').select('question_id,question_order').eq('test_id',testId).order('question_order',{ascending:true}),
-      db.from('student_answers').select('question_id,selected_option,is_correct').eq('student_id',student.id).eq('test_id',testId)
-    ]);
-    if(tqRes.error) throw tqRes.error;
-    if(ansRes.error) throw ansRes.error;
+    // Review के लिए केवल वही columns पढ़ें जो Test 3/Student Test system में निश्चित हैं।
+    // पुराने/गलत student_id, time_taken_seconds जैसे columns पर निर्भर नहीं रहें।
+    const {data:tq,error:tqError}=await db
+      .from('test_questions')
+      .select('question_id,question_order')
+      .eq('test_id',testId)
+      .order('question_order',{ascending:true});
+    if(tqError) throw tqError;
 
-    const tq=tqRes.data||[];
-    const answers=new Map((ansRes.data||[]).map(a=>[String(a.question_id),a]));
-    const ids=tq.map(x=>x.question_id);
-    let questions=[];
-    if(ids.length){
-      const qRes=await db.from('questions').select('id,question_text,option_a,option_b,option_c,option_d,correct_option,chapter_number,chapter_name').in('id',ids);
-      if(qRes.error) throw qRes.error;
-      const byId=new Map((qRes.data||[]).map(q=>[String(q.id),q]));
-      questions=tq.map(x=>byId.get(String(x.question_id))).filter(Boolean);
+    const tq=tq||[];
+    const ids=tq.map(x=>x.question_id).filter(Boolean);
+    if(!ids.length){
+      qbox.innerHTML='<div class="empty">इस Test का प्रश्नपत्र उपलब्ध नहीं है।</div>';
+      return;
+    }
+
+    const {data:qData,error:qError}=await db
+      .from('questions')
+      .select('id,question_text,option_a,option_b,option_c,option_d,correct_option,chapter_number,chapter_name')
+      .in('id',ids);
+    if(qError) throw qError;
+
+    const byId=new Map((qData||[]).map(q=>[String(q.id),q]));
+    const questions=tq.map(x=>byId.get(String(x.question_id))).filter(Boolean);
+
+    // Student answers optional हैं। अगर schema अलग हो/answer rows न मिलें,
+    // तो भी पूरा प्रश्नपत्र और सही उत्तर अवश्य खुलेगा।
+    let answers=new Map();
+    try{
+      let attemptId=r.attempt_id||null;
+      if(!attemptId){
+        const {data:aRows}=await db.from('test_attempts')
+          .select('id,submitted_at')
+          .eq('student_id',student.id)
+          .eq('test_id',testId)
+          .not('submitted_at','is',null)
+          .order('submitted_at',{ascending:false})
+          .limit(5);
+        if(aRows?.length){
+          const selectedDate=document.getElementById('date').value;
+          const sameDay=aRows.find(a=>indiaDateOf(a.submitted_at)===selectedDate);
+          attemptId=(sameDay||aRows[0]).id;
+        }
+      }
+      if(attemptId){
+        const {data:aData}=await db.from('student_answers')
+          .select('question_id,selected_option,is_correct')
+          .eq('attempt_id',attemptId);
+        answers=new Map((aData||[]).map(a=>[String(a.question_id),a]));
+      }
+    }catch(answerError){
+      console.warn('Student answer rows unavailable; showing question paper only:',answerError);
     }
 
     const total=Number(r.total_marks||r.total_questions||tq.length||0);
-    const score=Number(r.score??r.correct_answers??0);
     document.getElementById('reviewMeta').innerHTML=`<b>${esc(testLabel(r))}</b><br>तारीख: ${formatDMY(document.getElementById('date').value)} &nbsp; | &nbsp; अंक: <b>${score}/${total}</b>`;
     if(!questions.length){qbox.innerHTML='<div class="empty">इस attempt का प्रश्नपत्र उपलब्ध नहीं है।</div>';return;}
 
     qbox.innerHTML=questions.map((q,i)=>{
       const a=answers.get(String(q.id));
-      const attempted=a?.selected_option!==null && a?.selected_option!==undefined && String(a.selected_option).trim()!=='';
+      const attempted=!!a && a.selected_option!==null && a.selected_option!==undefined && String(a.selected_option).trim()!=='';
+      const your=attempted ? a.selected_option : 'उत्तर उपलब्ध नहीं';
       const isCorrect=a?.is_correct===true;
-      const your=attempted?a.selected_option:'उत्तर नहीं दिया';
       const options=[['A',q.option_a],['B',q.option_b],['C',q.option_c],['D',q.option_d]].filter(x=>x[1]!=null&&String(x[1]).trim()!=='');
-      return `<div class="q"><div class="qno">प्रश्न ${i+1}${q.chapter_name?' • '+esc(q.chapter_name):''}</div><div class="qtext">${esc(q.question_text)}</div>${options.length?`<div class="meta" style="margin:6px 0">${options.map(x=>`<div><b>${x[0]}.</b> ${esc(x[1])}</div>`).join('')}</div>`:''}<div class="ans ${isCorrect?'correct':'wrong'}">आपका उत्तर: ${isCorrect?'✅':'❌'} ${esc(your)}</div><div class="ans correct">सही उत्तर: ✅ ${esc(q.correct_option)}</div></div>`;
+      return `<div class="q"><div class="qno">प्रश्न ${i+1}${q.chapter_name?' • '+esc(q.chapter_name):''}</div><div class="qtext">${esc(q.question_text)}</div>${options.length?`<div class="meta" style="margin:6px 0">${options.map(x=>`<div><b>${x[0]}.</b> ${esc(x[1])}</div>`).join('')}</div>`:''}<div class="ans ${attempted?(isCorrect?'correct':'wrong'):'wrong'}">आपका उत्तर: ${attempted?(isCorrect?'✅':'❌'):'ℹ️'} ${esc(your)}</div><div class="ans correct">सही उत्तर: ✅ ${esc(q.correct_option)}</div></div>`;
     }).join('');
   }catch(err){
     console.error('Review Supabase Error:',err);
