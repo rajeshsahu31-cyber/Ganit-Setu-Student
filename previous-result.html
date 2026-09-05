@@ -16,7 +16,7 @@ body{margin:0;background:#f5f9ff;color:var(--text);font-family:Arial,"Noto Sans 
 input[type=date],select{width:100%;box-sizing:border-box;padding:12px;border:1px solid #cbdbea;border-radius:11px;font-size:15px;background:#fff;color:var(--text)}
 .date-row{display:grid;grid-template-columns:1fr 48px;gap:8px;position:relative}.date-row input[type=text]{width:100%;box-sizing:border-box;padding:12px;border:1px solid #cbdbea;border-radius:11px;font-size:18px;background:#fff;color:var(--text);letter-spacing:.5px}.date-row button{border:1px solid #cbdbea;background:#eef5ff;border-radius:11px;font-size:20px}.date-row input[type=date]{position:absolute;right:56px;top:0;width:1px;height:1px;opacity:0;pointer-events:none}
 .demo-note{background:var(--blue2);border:1px solid #cfe2fb;border-radius:12px;padding:12px;font-size:12px;line-height:1.55;color:#315a83}
-.attempt{border:1px solid var(--border);border-radius:13px;padding:13px;margin-top:10px}
+.attempt{border:1px solid var(--border);border-radius:13px;padding:13px;margin-top:10px}.test-select-wrap{margin-top:10px}.test-select-wrap select{font-size:16px;font-weight:700;padding:13px 12px}.selected-test{margin-top:12px}
 .attempt-top{display:flex;justify-content:space-between;gap:10px}.attempt-title{font-weight:800;font-size:15px}.score{font-weight:800;color:var(--blue);white-space:nowrap}
 .meta{font-size:12px;color:var(--muted);margin-top:5px}.review-btn{margin-top:10px;border:0;background:var(--blue);color:#fff;border-radius:9px;padding:9px 13px;font-weight:700}
 .review{display:none}.review.show{display:block}.q{border:1px solid var(--border);border-radius:13px;padding:13px;margin-top:10px}.qno{font-size:12px;color:var(--blue);font-weight:800}.qtext{font-weight:700;margin:6px 0 10px;line-height:1.5}.ans{font-size:12px;padding:8px;border-radius:8px;margin-top:6px}.wrong{background:#fff1f1;color:#a33}.correct{background:#edf9f0;color:#24743a}
@@ -243,6 +243,14 @@ async function loadFromLegacyTable(db, iso, student){
   }));
 }
 
+function testOrder(row){
+  const type=String(row?.test_type||'').toLowerCase();
+  if(type==='course_progress') return 1;
+  if(type==='chapter_practice') return 2;
+  if(type==='daily') return 3;
+  return 99;
+}
+
 function renderAttempts(rows){
   const box=document.getElementById('attempts');
   if(!rows.length){
@@ -250,19 +258,42 @@ function renderAttempts(rows){
     return;
   }
 
-  box.innerHTML=rows.map((r,i)=>{
+  // हमेशा वही क्रम: Course Test → Chapter Test → Practice Test
+  rows.sort((a,b)=>{
+    const order=testOrder(a)-testOrder(b);
+    if(order!==0) return order;
+    return new Date(a.submitted_at||0)-new Date(b.submitted_at||0);
+  });
+  currentRows=rows;
+
+  const options=rows.map((r,i)=>`<option value="${i}">${esc(testLabel(r))}</option>`).join('');
+  box.innerHTML=`
+    <div class="test-select-wrap">
+      <select id="testSelector" aria-label="Test चुनें">
+        ${options}
+      </select>
+    </div>
+    <div id="selectedTest" class="selected-test"></div>`;
+
+  const selector=document.getElementById('testSelector');
+  const renderSelected=()=>{
+    const i=Number(selector.value);
+    const r=currentRows[i];
+    if(!r) return;
     const total=Number(r.total_marks||r.total_questions||0);
     const score=Number(r.score??r.correct_answers??0);
     const correct=Number(r.correct_answers??score);
     const pct=Number(r.percentage|| (total ? score/total*100 : 0));
     const time=r.time_taken_seconds ? ` • ${Math.floor(r.time_taken_seconds/60)}:${String(r.time_taken_seconds%60).padStart(2,'0')}` : '';
     const timeText=r.submitted_at ? new Intl.DateTimeFormat('hi-IN',{hour:'2-digit',minute:'2-digit'}).format(new Date(r.submitted_at)) : '';
-    return `<div class="attempt">
+    document.getElementById('selectedTest').innerHTML=`<div class="attempt">
       <div class="attempt-top"><div class="attempt-title">${esc(testLabel(r))}</div><div class="score">${score}/${total}</div></div>
       <div class="meta">सही ${correct} • ${pct.toFixed(1)}%${time}${timeText?' • '+esc(timeText):''}</div>
       <button class="review-btn" onclick="openReview(${i})">प्रश्नपत्र Review करें</button>
     </div>`;
-  }).join('');
+  };
+  selector.addEventListener('change',renderSelected);
+  renderSelected();
 }
 
 async function loadAttempts(){
