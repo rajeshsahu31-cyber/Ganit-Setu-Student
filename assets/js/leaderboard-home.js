@@ -50,19 +50,9 @@ function setHomeLeaderboardMessage(message){
   if(track) track.innerHTML='';
 }
 
-function formatHomeDate(value){
-  if(!value) return '';
-  const d=new Date(value);
-  if(Number.isNaN(d.getTime())) return '';
-  return d.toLocaleDateString('hi-IN',{day:'numeric',month:'long',year:'numeric'});
-}
-
-function setHomeDateFromResults(data){
+function setHomeDateFromResults(){
   const el=document.getElementById('testDateText');
-  if(!el) return;
-  const first=data && data[0];
-  const date=formatHomeDate(first && first.submitted_at);
-  el.textContent = date ? `${date} तक का सर्वश्रेष्ठ प्रदर्शन` : 'मुख्य प्रगति टेस्ट का सर्वश्रेष्ठ प्रदर्शन';
+  if(el) el.textContent='';
 }
 
 function renderTopThree(data){
@@ -163,7 +153,7 @@ function formatHomeDuration(seconds){
   const s=Math.max(0,Math.floor(Number(seconds)||0));
   const m=Math.floor(s/60);
   const sec=s%60;
-  return m ? `${m}मि ${String(sec).padStart(2,'0')}से` : `${sec}से`;
+  return m ? `${m} मिनट ${String(sec).padStart(2,'0')} सेकंड` : `${sec} सेकंड`;
 }
 
 function timeValue(r){
