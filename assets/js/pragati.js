@@ -3,6 +3,10 @@
   const $ = id => document.getElementById(id);
   const esc = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
   const chapterMax = cls => Number(cls)===9 ? 12 : 14;
+  const normalizeClass = v => {
+    const m = String(v ?? '').match(/(?:9|10)/);
+    return m ? Number(m[0]) : 0;
+  };
 
   function showError(msg){ $('progressError').hidden=false; $('progressError').textContent=msg; }
   function num(v){ const n=Number(v); return Number.isFinite(n)?n:0; }
@@ -10,16 +14,43 @@
   async function load(){
     const code=sessionStorage.getItem('ganit_setu_student_id');
     if(!code){ showError('कृपया पहले Student Login करें।'); return; }
+    if(!window.supabaseClient){ showError('Supabase connection उपलब्ध नहीं है।'); return; }
 
-    const {data:student,error:studentError}=await sb.from('students').select('student_id,full_name,class_level').eq('student_id',code).maybeSingle();
-    if(studentError || !student){ showError('विद्यार्थी की जानकारी लोड नहीं हो सकी।'); return; }
-    const cls=num(student.class_level);
-    if(cls!==9 && cls!==10){ showError('इस कक्षा के लिए प्रगति उपलब्ध नहीं है।'); return; }
+    // पहले existing Results RPC से real data लें। यही Student Results page भी उपयोग करता है।
+    const {data:rows,error}=await supabaseClient.rpc('get_ganit_student_results',{p_student_code:code});
+    if(error){
+      console.error('Progress RPC error:', error);
+      showError('प्रगति डेटा लोड नहीं हो सका: '+error.message);
+      return;
+    }
+
+    const raw=Array.isArray(rows)?rows:[];
+    if(!raw.length){
+      $('classLabel').textContent='कक्षा —';
+      renderSummary([]); renderChapters([],0); renderDonut([]); renderTrend([]);
+      return;
+    }
+
+    // RPC में class_level text हो सकता है (जैसे "10", "कक्षा 10वीं"), इसलिए normalize करें।
+    let cls=normalizeClass(raw[0]?.class_level);
+
+    // यदि RPC की rows में class अलग-अलग हो तो session student record से exact class लें।
+    const {data:student}=await supabaseClient
+      .from('students')
+      .select('student_id,full_name,class_level')
+      .eq('student_id',code)
+      .maybeSingle();
+    if(student?.class_level) cls=normalizeClass(student.class_level) || cls;
+
+    if(cls!==9 && cls!==10){
+      showError('विद्यार्थी की कक्षा 9 या 10 नहीं मिली।');
+      return;
+    }
     $('classLabel').textContent=`कक्षा ${cls}वीं`;
 
-    const {data:rows,error}=await sb.rpc('get_ganit_student_results',{p_student_code:code});
-    if(error){ console.error(error); showError('प्रगति डेटा लोड नहीं हो सका: '+error.message); return; }
-    const all=(rows||[]).filter(r=>num(r.class_level)===cls).sort((a,b)=>new Date(a.submitted_at)-new Date(b.submitted_at));
+    const all=raw
+      .filter(r=>normalizeClass(r.class_level)===cls)
+      .sort((a,b)=>new Date(a.submitted_at||0)-new Date(b.submitted_at||0));
 
     renderSummary(all);
     renderChapters(all,cls);
