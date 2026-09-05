@@ -23,8 +23,10 @@ function testLabel(row) {
   const map = {
     course_progress: 'कोर्स टेस्ट',
     chapter_practice: 'अध्याय टेस्ट',
-    daily: 'Daily Test'
+    daily: 'Practice Test'
   };
+  // Daily remains the internal Supabase test_type; only the student-facing name changes.
+  if (String(row?.test_type || '').toLowerCase() === 'daily') return 'Practice Test';
   return row.test_title || map[row.test_type] || 'टेस्ट';
 }
 
