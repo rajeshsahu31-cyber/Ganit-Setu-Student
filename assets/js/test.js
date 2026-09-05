@@ -1,26 +1,9 @@
-/*
- * GANIT SETU — Student Test Engine
- *
- * Final rules:
- * 1) Course test: selected chapters 1..N, 10 random questions per chapter.
- * 2) Chapter test: one selected chapter, 10 random questions.
- * 3) Daily test: 5 random questions from the dedicated Daily question pool.
- * 4) A test can be attempted once per student per DATE. The next date creates a
- *    fresh logical test automatically after 00:00 (India time).
- * 5) Daily questions are tracked across previous daily cycles so the student
- *    receives unseen questions first. When the pool is exhausted a new shuffled
- *    cycle starts.
- * 6) Question-bank size is not hard-coded; 25/50/100/200+ all work.
- *
- * Only this file owns test selection/start/submit logic. Old duplicate lock or
- * random-selection logic must not be added alongside this implementation.
- */
+// GANIT SETU STUDENT TEST SYSTEM
+// Clean replacement: all three tests + Supabase save
 
 const $ = id => document.getElementById(id);
 const MAX_CHAPTERS = { 9: 12, 10: 14 };
-const QUESTIONS_PER_CHAPTER = 10;
 const DAILY_QUESTION_COUNT = 5;
-const INDIA_TZ = 'Asia/Kolkata';
 
 function getClassLevel() {
   const n = Number(sessionStorage.getItem('ganit_setu_student_class'));
@@ -31,12 +14,12 @@ function getStudentCode() {
   return sessionStorage.getItem('ganit_setu_student_id') || '';
 }
 
-function getIndiaDateKey(date = new Date()) {
-  const parts = new Intl.DateTimeFormat('en-CA', {
-    timeZone: INDIA_TZ, year: 'numeric', month: '2-digit', day: '2-digit'
-  }).formatToParts(date);
-  const map = Object.fromEntries(parts.map(p => [p.type, p.value]));
-  return `${map.year}-${map.month}-${map.day}`;
+function getLocalDateKey() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 function esc(value = '') {
@@ -45,26 +28,8 @@ function esc(value = '') {
   );
 }
 
-function shuffle(items) {
-  const a = [...items];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-function sample(items, count) {
-  return shuffle(items).slice(0, count);
-}
-
-let questions = [];
-let currentIndex = 0;
-let answers = [];
-let startedAt = 0;
-let timerHandle = null;
-let currentTestMeta = null;
-let currentLockedTestId = null;
+let questions = [], currentIndex = 0, answers = [];
+let startedAt = 0, timerHandle = null, currentTestMeta = null, currentLockedTestId = null;
 
 async function loadQuestions(classLevel, chapterNumber = null) {
   let q = supabaseClient
@@ -86,9 +51,11 @@ function startTimer() {
   if (!timer) return;
   clearInterval(timerHandle);
   startedAt = Date.now();
+
   timerHandle = setInterval(() => {
-    const seconds = Math.floor((Date.now() - startedAt) / 1000);
-    timer.textContent = `⏱️ ${String(Math.floor(seconds / 60)).padStart(2,'0')}:${String(seconds % 60).padStart(2,'0')}`;
+    const s = Math.floor((Date.now() - startedAt) / 1000);
+    timer.textContent =
+      `⏱️ ${String(Math.floor(s/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
   }, 1000);
 }
 
@@ -101,10 +68,41 @@ function renderQuestion() {
     `<div class="chapter-label">अध्याय ${esc(q.chapter_number)}${q.chapter_name ? ' : ' + esc(q.chapter_name) : ''}</div>` +
     `<div>${esc(q.question_text)}</div>`;
 
+  // TEST 3: problem-solving answer entry.
+  // correct_option may contain multiple answers separated by | (e.g. 12|24).
+  // This keeps the existing database/RPC connection intact.
+  if (currentTestMeta && currentTestMeta.testType === 'daily' && currentTestMeta.answerMode === 'problem') {
+    const existing = answers[currentIndex];
+    const expectedParts = String(q.correct_option || '').split('|');
+    const count = Math.max(1, expectedParts.length);
+    let values = [];
+    if (Array.isArray(existing)) values = existing;
+    else if (existing !== null && existing !== undefined && existing !== '') values = String(existing).split('|');
+
+    $('options').innerHTML = Array.from({length: count}, (_, i) => `
+      <div class="answer-entry">
+        <label class="answer-label">${count === 1 ? 'अपना अंतिम उत्तर लिखें' : `उत्तर ${i + 1}`}</label>
+        <input type="text" class="problem-answer" data-answer-index="${i}" inputmode="decimal"
+          placeholder="यहाँ अपना उत्तर लिखें" value="${esc(values[i] || '')}">
+      </div>
+    `).join('');
+
+    $('options').querySelectorAll('.problem-answer').forEach(input => {
+      input.addEventListener('input', () => {
+        const arr = Array.from($('options').querySelectorAll('.problem-answer')).map(x => x.value.trim());
+        answers[currentIndex] = arr;
+      });
+    });
+    $('nextQuestion').textContent =
+      currentIndex === questions.length - 1 ? 'टेस्ट Submit करें' : 'अगला प्रश्न →';
+    return;
+  }
+
+  // TEST 1 / TEST 2: existing MCQ interface remains unchanged.
   const options = [['A',q.option_a],['B',q.option_b],['C',q.option_c],['D',q.option_d]];
-  $('options').innerHTML = options.map(([key, value]) =>
-    `<button type="button" class="option-btn ${answers[currentIndex] === key ? 'selected' : ''}" data-option="${key}">
-      <b>${key}.</b> ${esc(value)}
+  $('options').innerHTML = options.map(([k,v]) =>
+    `<button type="button" class="option-btn ${answers[currentIndex]===k?'selected':''}" data-option="${k}">
+      <b>${k}.</b> ${esc(v)}
     </button>`
   ).join('');
 
@@ -116,17 +114,16 @@ function renderQuestion() {
     };
   });
 
-  $('nextQuestion').textContent = currentIndex === questions.length - 1
-    ? 'टेस्ट Submit करें'
-    : 'अगला प्रश्न →';
+  $('nextQuestion').textContent =
+    currentIndex === questions.length - 1 ? 'टेस्ट Submit करें' : 'अगला प्रश्न →';
 }
 
-async function getOrCreateTest() {
+async function createTestAndQuestions() {
   const m = currentTestMeta;
   if (!m) throw new Error('Test की जानकारी उपलब्ध नहीं है।');
 
-  // Test identity includes the date. Therefore a new date automatically gets
-  // a new test_id while the old date remains available for review.
+  // सबसे पहले existing test खोजें.
+  // इससे एक ही Course/Chapter/Daily test के लिए हर बार नया test_id नहीं बनेगा.
   const { data: existing, error: findError } = await supabaseClient
     .from('tests')
     .select('id')
@@ -137,9 +134,15 @@ async function getOrCreateTest() {
     .eq('chapter_to', m.chapterTo)
     .limit(1);
 
-  if (findError) throw new Error('Test की जाँच नहीं हो सकी: ' + findError.message);
-  if (existing?.length) return Number(existing[0].id);
+  if (findError) {
+    throw new Error('Existing Test की जाँच नहीं हो सकी: ' + findError.message);
+  }
 
+  if (existing && existing.length) {
+    return Number(existing[0].id);
+  }
+
+  // केवल पहली बार नया test बनाया जाएगा.
   const { data: testId, error } = await supabaseClient.rpc('get_or_create_ganit_test', {
     p_title: m.title,
     p_test_type: m.testType,
@@ -149,16 +152,27 @@ async function getOrCreateTest() {
     p_question_count: questions.length,
     p_duration_minutes: m.durationMinutes || 10
   });
+
   if (error) throw error;
 
+  const questionIds = questions.map(q => Number(q.id));
   const { error: syncError } = await supabaseClient.rpc('sync_ganit_test_questions', {
     p_test_id: Number(testId),
-    p_question_ids: questions.map(q => Number(q.id))
+    p_question_ids: questionIds
   });
+
   if (syncError) throw syncError;
 
   return Number(testId);
 }
+
+// ============================================
+// PERMANENT TEST LOCK SYSTEM
+// Actual schema:
+// students.id = UUID
+// students.student_id = GS-0001 style code
+// test_attempts has UNIQUE(student_id, test_id)
+// ============================================
 
 async function getStudentUuidForAttempt() {
   const studentCode = getStudentCode();
@@ -171,205 +185,111 @@ async function getStudentUuidForAttempt() {
     .maybeSingle();
 
   if (error) throw error;
-  if (!data?.id) throw new Error('विद्यार्थी का database record नहीं मिला।');
+  if (!data || !data.id) {
+    throw new Error('विद्यार्थी का database record नहीं मिला।');
+  }
+
   return data.id;
 }
 
-function getBrowserLockKey() {
+function getAttemptLockKey() {
   const student = getStudentCode();
   const m = currentTestMeta || {};
-  return [
-    'ganit_setu_attempt', student, m.testType, m.classLevel,
-    m.chapterFrom || 0, m.chapterTo || 0, m.dateKey
-  ].join('_');
+
+  // Progressive/Course test: once attempted, the ENTIRE progressive test
+  // is locked for this student, regardless of chapter range.
+  if (m.testType === 'course_progress') {
+    return `ganit_setu_lock_${student}_course_progress_${m.classLevel}`;
+  }
+
+  // Chapter practice: each chapter is locked separately.
+  if (m.testType === 'chapter_practice') {
+    return `ganit_setu_lock_${student}_chapter_${m.classLevel}_${m.chapterFrom}`;
+  }
+
+  // Daily: one attempt per day for the student's class, regardless of
+  // which studied chapter range was selected before starting.
+  if (m.testType === 'daily') {
+    return `ganit_setu_lock_${student}_daily_${m.classLevel}_${getLocalDateKey()}`;
+  }
+
+  return `ganit_setu_lock_${student}_${m.testType}_${m.classLevel}_${m.title}`;
 }
 
 async function ensureTestIsUnlocked(testId) {
-  const localKey = getBrowserLockKey();
-  const m = currentTestMeta;
-  if (!m) throw new Error('Test की जानकारी उपलब्ध नहीं है।');
-
-  // Browser-side protection for the current student + test + date.
+  const localKey = getAttemptLockKey();
   if (localStorage.getItem(localKey) === 'submitted') {
-    throw new Error('🔒 आपने आज का यह टेस्ट पहले ही दे दिया है। अगला टेस्ट कल 12:00 बजे के बाद खुलेगा।');
+    throw new Error('🔒 आप यह टेस्ट पहले ही दे चुके हैं। इसे दोबारा नहीं दिया जा सकता।');
   }
 
   const studentUuid = await getStudentUuidForAttempt();
+  const m = currentTestMeta;
 
-  // TEST 1 (Course/selected-chapters): one attempt per student per DATE,
-  // regardless of how many chapters were selected. Do NOT use the test_id or
-  // chapter range here because changing 1-3 to 1-5 must not bypass today's lock.
-  if (m.testType === 'course_progress') {
-    const { data, error } = await supabaseClient
-      .from('test_attempts')
-      .select('id,status,submitted_at,test_id,tests(id,test_type,class_level)')
-      .eq('student_id', studentUuid);
-
-    if (error) throw new Error('Test lock की जाँच नहीं हो सकी: ' + error.message);
-
-    const today = m.dateKey || getIndiaDateKey();
-    const attemptedToday = (data || []).some(a => {
-      const t = a.tests;
-      if (!t || String(t.test_type) !== 'course_progress') return false;
-      if (Number(t.class_level) !== Number(m.classLevel)) return false;
-      if (!a.submitted_at) return false;
-      return getIndiaDateKey(new Date(a.submitted_at)) === today &&
-             String(a.status || '').toLowerCase() === 'submitted';
-    });
-
-    if (attemptedToday) {
-      throw new Error('🔒 आपने आज का Test 1 पहले ही दे दिया है। कल 12:00 बजे के बाद नया Test 1 खुलेगा।');
-    }
-
-    return true;
-  }
-
-  // TEST 2 (Chapter-wise): preserve the existing per-chapter behavior,
-  // but the lock applies only to today's attempt.
-  if (m.testType === 'chapter_practice') {
-    const { data, error } = await supabaseClient
-      .from('test_attempts')
-      .select('id,status,submitted_at,test_id,tests(id,test_type,class_level,chapter_from,chapter_to)')
-      .eq('student_id', studentUuid);
-
-    if (error) throw new Error('Test lock की जाँच नहीं हो सकी: ' + error.message);
-
-    const today = m.dateKey || getIndiaDateKey();
-    const attemptedToday = (data || []).some(a => {
-      const t = a.tests;
-      if (!t || String(t.test_type) !== 'chapter_practice') return false;
-      if (Number(t.class_level) !== Number(m.classLevel)) return false;
-      if (Number(t.chapter_from) !== Number(m.chapterFrom)) return false;
-      if (!a.submitted_at) return false;
-      return getIndiaDateKey(new Date(a.submitted_at)) === today &&
-             String(a.status || '').toLowerCase() === 'submitted';
-    });
-
-    if (attemptedToday) {
-      throw new Error('🔒 आपने आज इस अध्याय का टेस्ट पहले ही दे दिया है। कल 12:00 बजे के बाद फिर से दे सकेंगे।');
-    }
-
-    return true;
-  }
-
-  // TEST 3 (Daily): preserve the existing date-specific behavior.
   const { data, error } = await supabaseClient
     .from('test_attempts')
-    .select('id,status,submitted_at,test_id')
-    .eq('student_id', studentUuid)
-    .eq('test_id', Number(testId));
+    .select('id,status,submitted_at,test_id,tests(id,title,test_type,class_level,chapter_from,chapter_to)')
+    .eq('student_id', studentUuid);
 
   if (error) throw new Error('Test lock की जाँच नहीं हो सकी: ' + error.message);
 
-  const submitted = (data || []).some(a =>
-    String(a.status || '').toLowerCase() === 'submitted' || !!a.submitted_at
-  );
+  const alreadyAttempted = (data || []).some(a => {
+    const t = a.tests;
+    if (!t) return false;
 
-  if (submitted) {
-    throw new Error('🔒 आपने आज का Daily Test पहले ही दे दिया है। अगला Daily Test कल 12:00 बजे के बाद खुलेगा।');
+    // FIRST / PROGRESSIVE TEST:
+    // Any previous course_progress attempt for this class locks the WHOLE progressive test.
+    if (m.testType === 'course_progress') {
+      return String(t.test_type) === 'course_progress' &&
+             Number(t.class_level) === Number(m.classLevel);
+    }
+
+    // SECOND / CHAPTER TEST:
+    // Only the same chapter is locked.
+    if (m.testType === 'chapter_practice') {
+      return String(t.test_type) === 'chapter_practice' &&
+             Number(t.class_level) === Number(m.classLevel) &&
+             Number(t.chapter_from) === Number(m.chapterFrom);
+    }
+
+    // THIRD / DAILY TEST:
+    // One attempt per day for this class, regardless of selected chapter range.
+    if (m.testType === 'daily') {
+      return String(t.test_type) === 'daily' &&
+             Number(t.class_level) === Number(m.classLevel) &&
+             String(t.title).includes(getLocalDateKey());
+    }
+
+    return String(t.test_type) === String(m.testType) &&
+           Number(t.class_level) === Number(m.classLevel) &&
+           String(t.title) === String(m.title);
+  });
+
+  if (alreadyAttempted) {
+    throw new Error('🔒 आप यह टेस्ट पहले ही दे चुके हैं। इसे दोबारा नहीं दिया जा सकता।');
   }
 
   return true;
 }
-async function syncTestQuestionSet(testId) {
-  const { error } = await supabaseClient.rpc('sync_ganit_test_questions', {
-    p_test_id: Number(testId),
-    p_question_ids: questions.map(q => Number(q.id))
-  });
-  if (error) throw error;
-}
 
-async function getPreviousDailyQuestionIds(classLevel) {
-  // Primary history source: test_questions linked to previous Daily tests.
-  // If RLS/schema prevents direct reading, the browser history below still
-  // prevents repeats on the same device; DB history remains authoritative when available.
-  const used = new Set();
+async function checkLockBeforeStarting() {
+  // हमेशा stable/existing test_id लें.
+  const testId = await createTestAndQuestions();
 
-  try {
-    const { data: dailyTests, error: testsError } = await supabaseClient
-      .from('tests')
-      .select('id,title')
-      .eq('test_type', 'daily')
-      .eq('class_level', classLevel)
-      .order('id', { ascending: true });
+  // उसी UUID + उसी stable test_id का attempt database में खोजें.
+  await ensureTestIsUnlocked(testId);
 
-    if (!testsError && dailyTests?.length) {
-      const ids = dailyTests.map(t => Number(t.id)).filter(Number.isFinite);
-      if (ids.length) {
-        const { data: mappings, error: mapError } = await supabaseClient
-          .from('test_questions')
-          .select('test_id,question_id')
-          .in('test_id', ids);
-        if (!mapError) {
-          (mappings || []).forEach(row => {
-            if (row.question_id != null) used.add(String(row.question_id));
-          });
-        }
-      }
-    }
-  } catch (e) {
-    console.warn('Daily DB question history उपलब्ध नहीं हुई:', e);
-  }
-
-  // Supplemental per-student browser history.
-  const key = `ganit_setu_daily_seen_${getStudentCode()}_${classLevel}`;
-  try {
-    const local = JSON.parse(localStorage.getItem(key) || '[]');
-    local.forEach(id => used.add(String(id)));
-  } catch (_) {}
-
-  return used;
-}
-
-function rememberDailyQuestions(classLevel, selected) {
-  const key = `ganit_setu_daily_seen_${getStudentCode()}_${classLevel}`;
-  let old = [];
-  try { old = JSON.parse(localStorage.getItem(key) || '[]'); } catch (_) {}
-  const merged = [...new Set([...old.map(String), ...selected.map(q => String(q.id))])];
-  localStorage.setItem(key, JSON.stringify(merged));
-}
-
-async function selectDailyQuestions(classLevel, allQuestions) {
-  if (allQuestions.length < DAILY_QUESTION_COUNT) {
-    throw new Error(`Daily Test के लिए कम से कम ${DAILY_QUESTION_COUNT} Questions उपलब्ध होने चाहिए।`);
-  }
-
-  const used = await getPreviousDailyQuestionIds(classLevel);
-  let fresh = allQuestions.filter(q => !used.has(String(q.id)));
-
-  // If fewer than five unseen questions remain, finish the current cycle with
-  // unseen questions first, then begin a new shuffled cycle from the full pool.
-  if (fresh.length >= DAILY_QUESTION_COUNT) {
-    return sample(fresh, DAILY_QUESTION_COUNT);
-  }
-
-  const selected = sample(fresh, fresh.length);
-  const selectedIds = new Set(selected.map(q => String(q.id)));
-  const remainder = allQuestions.filter(q => !selectedIds.has(String(q.id)));
-  const needed = DAILY_QUESTION_COUNT - selected.length;
-  let candidate = [...selected, ...sample(remainder, needed)];
-
-  // New cycle: reset only after the old pool is exhausted. Avoid returning the
-  // exact previous 5-question set in the same order when a new cycle starts.
-  const lastKey = `ganit_setu_daily_last_set_${getStudentCode()}_${classLevel}`;
-  let last = [];
-  try { last = JSON.parse(localStorage.getItem(lastKey) || '[]').map(String); } catch (_) {}
-  const sameSet = a => Array.isArray(last) && last.length === DAILY_QUESTION_COUNT &&
-    a.length === DAILY_QUESTION_COUNT && a.every(id => last.includes(String(id)));
-  if (sameSet(candidate.map(q => q.id))) {
-    candidate = sample(allQuestions, DAILY_QUESTION_COUNT);
-  }
-  return candidate;
+  currentLockedTestId = Number(testId);
+  return currentLockedTestId;
 }
 
 async function saveAttempt() {
   const studentCode = getStudentCode();
   if (!studentCode) throw new Error('Student login information नहीं मिली।');
 
-  const testId = currentLockedTestId || await getOrCreateTest();
-  const payload = questions.map((q, i) => ({
+  const testId = currentLockedTestId || await createTestAndQuestions();
+  const payload = questions.map((q,i) => ({
     question_id: q.id,
-    selected_option: answers[i] || null
+    selected_option: Array.isArray(answers[i]) ? answers[i].map(v => String(v).trim()).join('|') : (answers[i] || null)
   }));
 
   const { data, error } = await supabaseClient.rpc('save_ganit_test_attempt', {
@@ -378,12 +298,14 @@ async function saveAttempt() {
     p_answers: payload,
     p_time_taken_seconds: Math.floor((Date.now() - startedAt) / 1000)
   });
+
   if (error) throw error;
   return data;
 }
 
-async function submitTest(testBoxId) {
+async function submitTest(testBoxId, messageBoxId) {
   clearInterval(timerHandle);
+
   const btn = $('nextQuestion');
   if (btn) {
     btn.disabled = true;
@@ -391,32 +313,44 @@ async function submitTest(testBoxId) {
   }
 
   try {
-    const result = await saveAttempt();
-    localStorage.setItem(getBrowserLockKey(), 'submitted');
+    const r = await saveAttempt();
 
-    if (currentTestMeta?.testType === 'daily') {
-      rememberDailyQuestions(currentTestMeta.classLevel, questions);
-      localStorage.setItem(`ganit_setu_daily_last_set_${getStudentCode()}_${currentTestMeta.classLevel}`, JSON.stringify(questions.map(q => q.id)));
-    }
+    // Second protection layer: after a successful submit, lock this logical test
+    // immediately in the same browser as well.
+    localStorage.setItem(getAttemptLockKey(), 'submitted');
 
-    $(testBoxId).innerHTML = `
-      <div class="success-box">
-        <h2>✓ टेस्ट सफलतापूर्वक Submit हो गया</h2><br>
-        सही उत्तर: <b>${esc(result?.correct ?? 0)}/${esc(result?.total ?? questions.length)}</b><br>
-        गलत उत्तर: <b>${esc(result?.wrong ?? 0)}</b><br>
-        बिना उत्तर: <b>${esc(result?.unattempted ?? 0)}</b><br>
-        प्रतिशत: <b>${esc(result?.percentage ?? 0)}%</b><br><br>
-        <small>✓ आपका Result सुरक्षित हो गया है। यह टेस्ट दोबारा attempt नहीं किया जा सकता।</small><br><br>
-        <button class="primary-btn" onclick="location.href='results.html'">पिछला परिणाम देखें</button>
+    // Result उसी visible test box में दिखाएँ,
+    // ताकि hidden setup section के कारण Success message गायब न हो।
+    $(testBoxId).innerHTML =
+      `<div class="success-box">
+        <h2>✓ टेस्ट सफलतापूर्वक Submit हो गया</h2>
+        <br>
+        सही उत्तर: <b>${r.correct}/${r.total}</b><br>
+        गलत उत्तर: <b>${r.wrong}</b><br>
+        बिना उत्तर: <b>${r.unattempted}</b><br>
+        प्रतिशत: <b>${r.percentage}%</b><br><br>
+        <small>✓ Result Supabase में save हो गया है।</small><br><br>
+        <button class="primary-btn" onclick="location.href='test-types.html'">
+          टेस्ट पेज पर जाएँ
+        </button>
       </div>`;
+
   } catch (e) {
     console.error(e);
-    if (btn) btn.disabled = false;
-    $(testBoxId).innerHTML = `<div class="error-box"><b>टेस्ट का Result save नहीं हुआ</b><br><br>${esc(e.message || 'Unknown error')}<br><br><button class="primary-btn" onclick="location.reload()">दोबारा प्रयास करें</button></div>`;
+
+    // Error भी उसी visible test box में दिखेगा।
+    $(testBoxId).innerHTML =
+      `<div class="error-box">
+        <b>टेस्ट का Result save नहीं हुआ</b><br><br>
+        ${esc(e.message || 'Unknown error')}<br><br>
+        <button class="primary-btn" onclick="location.reload()">
+          दोबारा प्रयास करें
+        </button>
+      </div>`;
   }
 }
 
-function beginTest(testBoxId) {
+function beginTest(testBoxId, messageBoxId) {
   currentIndex = 0;
   answers = new Array(questions.length).fill(null);
   $(testBoxId).style.display = 'block';
@@ -424,7 +358,15 @@ function beginTest(testBoxId) {
   startTimer();
 
   $('nextQuestion').onclick = () => {
-    if (!answers[currentIndex]) {
+    const currentAnswer = answers[currentIndex];
+    const isProblemAnswer = currentTestMeta && currentTestMeta.testType === 'daily' && currentTestMeta.answerMode === 'problem';
+    if (isProblemAnswer) {
+      const values = Array.isArray(currentAnswer) ? currentAnswer : [currentAnswer];
+      if (!values.length || values.some(v => !String(v || '').trim())) {
+        alert('कृपया अपना उत्तर दर्ज करें।');
+        return;
+      }
+    } else if (!currentAnswer) {
       alert('कृपया एक विकल्प चुनें।');
       return;
     }
@@ -432,26 +374,32 @@ function beginTest(testBoxId) {
       currentIndex++;
       renderQuestion();
     } else {
-      submitTest(testBoxId);
+      submitTest(testBoxId, messageBoxId);
     }
   };
 }
 
-// TEST 1 — selected chapters 1..N, 10 random questions per chapter.
+// TEST 1: selected chapter range, 10 questions per chapter
 function setupCourseTest() {
   if (!$('chapterTo')) return;
 
   const classLevel = getClassLevel();
   const select = $('chapterTo');
   select.innerHTML = '<option value="">अध्याय चुनें</option>';
-  for (let n = 1; n <= MAX_CHAPTERS[classLevel]; n++) {
+
+  for (let n=1; n<=MAX_CHAPTERS[classLevel]; n++) {
     select.innerHTML += `<option value="${n}">अध्याय ${n}</option>`;
   }
-  if ($('studentClassInfo')) $('studentClassInfo').textContent = `कक्षा ${classLevel} • कुल ${MAX_CHAPTERS[classLevel]} अध्याय`;
+
+  if ($('studentClassInfo')) {
+    $('studentClassInfo').textContent =
+      `कक्षा ${classLevel} • कुल ${MAX_CHAPTERS[classLevel]} अध्याय`;
+  }
 
   $('startCourseBtn').onclick = async () => {
     const chapterTo = Number(select.value);
     const message = $('courseMessage');
+
     if (!chapterTo) {
       message.innerHTML = '<div class="error-box">कृपया अध्याय चुनें।</div>';
       return;
@@ -460,119 +408,153 @@ function setupCourseTest() {
     try {
       const all = await loadQuestions(classLevel);
       questions = [];
-      for (let ch = 1; ch <= chapterTo; ch++) {
-        const chapterQuestions = all.filter(q => Number(q.chapter_number) === ch);
-        if (chapterQuestions.length < QUESTIONS_PER_CHAPTER) {
-          throw new Error(`अध्याय ${ch} में ${QUESTIONS_PER_CHAPTER} Questions उपलब्ध नहीं हैं। अभी ${chapterQuestions.length} हैं।`);
-        }
-        questions.push(...sample(chapterQuestions, QUESTIONS_PER_CHAPTER));
+
+      for (let ch=1; ch<=chapterTo; ch++) {
+        questions.push(...all.filter(q => Number(q.chapter_number) === ch).slice(0,10));
       }
 
-      currentTestMeta = {
-        title: `Course Test Class ${classLevel} Chapter 1-${chapterTo} ${getIndiaDateKey()}`,
-        testType: 'course_progress', classLevel, chapterFrom: 1, chapterTo,
-        dateKey: getIndiaDateKey(), durationMinutes: 10
-      };
-      currentLockedTestId = await getOrCreateTest();
-      await syncTestQuestionSet(currentLockedTestId);
-      await ensureTestIsUnlocked(currentLockedTestId);
+      if (!questions.length) throw new Error('चुने गए अध्यायों में Questions उपलब्ध नहीं हैं।');
 
+      currentTestMeta = {
+        title: `Course Test Class ${classLevel} Chapter 1-${chapterTo}`,
+        testType: 'course_progress',
+        classLevel,
+        chapterFrom: 1,
+        chapterTo,
+        durationMinutes: 10
+      };
+
+      currentLockedTestId = null;
+      await checkLockBeforeStarting();
       $('courseSetup').style.display = 'none';
       $('courseTest').style.display = 'block';
       if ($('testClass')) $('testClass').textContent = `कक्षा ${classLevel} • अध्याय 1 से ${chapterTo}`;
       if ($('questionCount')) $('questionCount').textContent = `कुल ${questions.length} प्रश्न`;
-      beginTest('courseTest');
-    } catch (e) {
+
+      beginTest('courseTest','courseMessage');
+    } catch(e) {
       message.innerHTML = `<div class="error-box">${esc(e.message)}</div>`;
     }
   };
 }
 
-// TEST 2 — one selected chapter, 10 random questions.
+// TEST 2: one selected chapter, exactly 10 questions
 function setupChapterTest() {
   if (!$('chapterSelect')) return;
 
   const classLevel = getClassLevel();
   const select = $('chapterSelect');
   select.innerHTML = '<option value="">अध्याय चुनें</option>';
-  for (let n = 1; n <= MAX_CHAPTERS[classLevel]; n++) {
+
+  for (let n=1; n<=MAX_CHAPTERS[classLevel]; n++) {
     select.innerHTML += `<option value="${n}">अध्याय ${n}</option>`;
   }
-  if ($('chapterClassInfo')) $('chapterClassInfo').textContent = `कक्षा ${classLevel} • एक अध्याय • 10 Questions`;
+
+  if ($('chapterClassInfo')) {
+    $('chapterClassInfo').textContent = `कक्षा ${classLevel} • एक अध्याय • 10 Questions`;
+  }
 
   $('startChapterBtn').onclick = async () => {
     const chapter = Number(select.value);
     const message = $('chapterMessage');
+
     if (!chapter) {
       message.innerHTML = '<div class="error-box">कृपया अध्याय चुनें।</div>';
       return;
     }
 
     try {
-      const pool = await loadQuestions(classLevel, chapter);
-      if (pool.length < QUESTIONS_PER_CHAPTER) {
-        throw new Error(`इस अध्याय में अभी ${pool.length} Questions हैं। कम से कम ${QUESTIONS_PER_CHAPTER} चाहिए।`);
+      questions = (await loadQuestions(classLevel, chapter)).slice(0,10);
+
+      if (questions.length < 10) {
+        throw new Error(`इस अध्याय में अभी ${questions.length} Questions हैं। 10 Questions उपलब्ध होने चाहिए।`);
       }
-      questions = sample(pool, QUESTIONS_PER_CHAPTER);
 
       currentTestMeta = {
-        title: `Chapter Test Class ${classLevel} Chapter ${chapter} ${getIndiaDateKey()}`,
-        testType: 'chapter_practice', classLevel, chapterFrom: chapter, chapterTo: chapter,
-        dateKey: getIndiaDateKey(), durationMinutes: 10
+        title: `Chapter Test Class ${classLevel} Chapter ${chapter}`,
+        testType: 'chapter_practice',
+        classLevel,
+        chapterFrom: chapter,
+        chapterTo: chapter,
+        durationMinutes: 10
       };
-      currentLockedTestId = await getOrCreateTest();
-      await syncTestQuestionSet(currentLockedTestId);
-      await ensureTestIsUnlocked(currentLockedTestId);
 
+      currentLockedTestId = null;
+      await checkLockBeforeStarting();
       $('chapterSetup').style.display = 'none';
-      if ($('chapterTestTitle')) $('chapterTestTitle').textContent = `कक्षा ${classLevel} • अध्याय ${chapter} • 10 Questions`;
-      beginTest('chapterTest');
-    } catch (e) {
+      if ($('chapterTestTitle')) {
+        $('chapterTestTitle').textContent = `कक्षा ${classLevel} • अध्याय ${chapter} • 10 Questions`;
+      }
+
+      beginTest('chapterTest','chapterMessage');
+    } catch(e) {
       message.innerHTML = `<div class="error-box">${esc(e.message)}</div>`;
     }
   };
 }
 
-// TEST 3 — 5 random questions from the dedicated Daily Test question bank.
+// TEST 3: 5 problem-solving questions from chapters 1..selected chapter.
 function setupDailyTest() {
   if (!$('dailyStartBtn')) return;
 
+  const classLevel = getClassLevel();
+  const select = $('dailyChapterTo');
+  if (!select) return;
+
+  select.innerHTML = '<option value="">अध्याय चुनें</option>';
+  for (let n=1; n<=MAX_CHAPTERS[classLevel]; n++) {
+    select.innerHTML += `<option value="${n}">अध्याय 1 से ${n} तक</option>`;
+  }
+
+  if ($('dailyClassInfo')) {
+    $('dailyClassInfo').textContent = `कक्षा ${classLevel} • अधिकतम ${MAX_CHAPTERS[classLevel]} अध्याय`;
+  }
+
   $('dailyStartBtn').onclick = async () => {
     const message = $('dailyMessage');
-    const classLevel = getClassLevel();
+    const chapterTo = Number(select.value);
+
+    if (!chapterTo) {
+      message.innerHTML = '<div class="error-box">कृपया पहले बताएं कि आपने कितने अध्याय तक पढ़ाई की है।</div>';
+      return;
+    }
 
     try {
       const all = await loadQuestions(classLevel);
-      questions = await selectDailyQuestions(classLevel, all);
+      const studiedQuestions = all.filter(q => Number(q.chapter_number) >= 1 && Number(q.chapter_number) <= chapterTo);
 
-      currentTestMeta = {
-        title: `Daily Test Class ${classLevel} ${getIndiaDateKey()}`,
-        testType: 'daily', classLevel, chapterFrom: 1, chapterTo: MAX_CHAPTERS[classLevel],
-        dateKey: getIndiaDateKey(), durationMinutes: 10
-      };
-      currentLockedTestId = await getOrCreateTest();
-
-      // A dated test already has its own question set. If it exists, the
-      // database mapping is the authoritative set for that date.
-      const { data: mapped, error: mappedError } = await supabaseClient
-        .from('test_questions')
-        .select('question_id')
-        .eq('test_id', currentLockedTestId);
-
-      if (!mappedError && mapped?.length >= DAILY_QUESTION_COUNT) {
-        const ids = new Set(mapped.map(x => String(x.question_id)));
-        questions = all.filter(q => ids.has(String(q.id))).slice(0, DAILY_QUESTION_COUNT);
-      } else {
-        await syncTestQuestionSet(currentLockedTestId);
+      if (studiedQuestions.length < DAILY_QUESTION_COUNT) {
+        throw new Error(`चयनित अध्यायों में अभी ${studiedQuestions.length} Questions हैं। Test 3 के लिए कम से कम ${DAILY_QUESTION_COUNT} Questions उपलब्ध होने चाहिए।`);
       }
 
-      await ensureTestIsUnlocked(currentLockedTestId);
-      if (questions.length !== DAILY_QUESTION_COUNT) throw new Error('Daily Test में 5 प्रश्न तैयार नहीं हो सके।');
+      const shuffled = [...studiedQuestions];
+      for (let i=shuffled.length-1; i>0; i--) {
+        const j = Math.floor(Math.random() * (i+1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
 
+      questions = shuffled.slice(0, DAILY_QUESTION_COUNT);
+
+      currentTestMeta = {
+        title: `Daily Test Class ${classLevel} ${getLocalDateKey()}`,
+        testType: 'daily',
+        answerMode: 'problem',
+        classLevel,
+        chapterFrom: 1,
+        chapterTo,
+        durationMinutes: 10
+      };
+
+      currentLockedTestId = null;
+      await checkLockBeforeStarting();
       $('dailySetup').style.display = 'none';
-      if ($('dailyTitle')) $('dailyTitle').textContent = `आज का Daily Test • कक्षा ${classLevel} • ${DAILY_QUESTION_COUNT} Questions`;
-      beginTest('dailyTest');
-    } catch (e) {
+      if ($('dailyTitle')) {
+        $('dailyTitle').textContent =
+          `कक्षा ${classLevel} • अध्याय 1 से ${chapterTo} • 5 प्रश्न`;
+      }
+
+      beginTest('dailyTest','dailyMessage');
+    } catch(e) {
       message.innerHTML = `<div class="error-box">${esc(e.message)}</div>`;
     }
   };
