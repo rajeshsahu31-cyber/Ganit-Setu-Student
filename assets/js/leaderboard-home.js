@@ -91,7 +91,7 @@ function renderTopTen(data){
     const timeSeconds=timeValue(r);
     const timeText=Number.isFinite(timeSeconds) && timeSeconds < 999999999 ? formatHomeDuration(timeSeconds) : '—';
     const classText=r.class_level ? `कक्षा ${escapeHomeHtml(r.class_level)}` : 'कक्षा —';
-    const testText=r.test_title || r.title || 'मुख्य प्रगति टेस्ट';
+    const testText=cleanHomeTestTitle(r.test_title || r.title || 'मुख्य प्रगति टेस्ट');
     return `<div class="winner-card">
       <div class="winner-number">#${escapeHomeHtml(r.rank_no)}</div>
       <div class="mini-photo">${homePhotoHtml(r)}</div>
@@ -118,15 +118,52 @@ function updateMyRank(data){
   el.textContent=mine ? `#${mine.rank_no}` : '—';
 }
 
-let homeScrollTimer=null;
+function cleanHomeTestTitle(title=''){
+  return String(title)
+    .replace(/\s*[-–—|,:]\s*(?:date\s*[:.-]?)?\s*\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}\s*$/i,'')
+    .replace(/\s*[-–—|,:]\s*(?:date\s*[:.-]?)?\s*\d{4}[\/-]\d{1,2}[\/-]\d{1,2}\s*$/i,'')
+    .replace(/\s*\(\s*\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}\s*\)\s*$/,'')
+    .replace(/\s*\b(?:date|दिनांक)\s*[:.-]\s*\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}\s*$/i,'')
+    .trim();
+}
+
+let homeScrollFrame=null;
+function stopAutoScroll(){
+  if(homeScrollFrame){
+    cancelAnimationFrame(homeScrollFrame);
+    homeScrollFrame=null;
+  }
+}
+
 function startAutoScroll(){
   const track=document.getElementById('winnerTrack');
-  if(!track || homeScrollTimer) return;
-  homeScrollTimer=setInterval(()=>{
-    if(track.scrollWidth<=track.clientWidth) return;
-    const next=track.scrollLeft+280;
-    track.scrollTo({left:next>=track.scrollWidth-track.clientWidth-5?0:next,behavior:'smooth'});
-  },3500);
+  stopAutoScroll();
+  if(!track) return;
+
+  let lastTime=performance.now();
+  const speed=22; // pixels per second: धीमा और लगातार
+
+  const step=(now)=>{
+    if(!document.body.contains(track)){
+      homeScrollFrame=null;
+      return;
+    }
+
+    const delta=(now-lastTime)/1000;
+    lastTime=now;
+
+    if(track.scrollWidth>track.clientWidth){
+      const maxScroll=track.scrollWidth-track.clientWidth;
+      track.scrollLeft += speed*delta;
+      if(track.scrollLeft >= maxScroll-1){
+        track.scrollLeft=0;
+      }
+    }
+
+    homeScrollFrame=requestAnimationFrame(step);
+  };
+
+  homeScrollFrame=requestAnimationFrame(step);
 }
 
 async function getHomeStudentClass(){
