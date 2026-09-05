@@ -6,6 +6,7 @@
   <title>गणित सेतु | विद्यार्थी होम</title>
   <link rel="stylesheet" href="assets/css/style.css">
   <link rel="stylesheet" href="assets/css/home.css">
+  <link rel="stylesheet" href="assets/css/bottom-nav.css">
 </head>
 <body>
 
@@ -67,27 +68,6 @@
     </div>
   </section>
 
-  <!-- लीडरबोर्ड -->
-  <section class="leaderboard-section">
-    <div class="section-title">
-      <div>
-        <p id="testDateText">कल की परीक्षा का सर्वश्रेष्ठ प्रदर्शन</p>
-        <h2>🏆 लीडरबोर्ड</h2>
-      </div>
-      <a href="leaderboard.html">पूरा देखें →</a>
-    </div>
-
-    <div class="top-three" id="topThree"></div>
-
-    <div class="winner-slider">
-      <div class="slider-title">
-        <span>Top 10 विजेता</span>
-        <small>Rank 1 से 10 • स्वतः स्क्रॉल</small>
-      </div>
-      <div class="winner-track" id="winnerTrack"></div>
-    </div>
-  </section>
-
   <!-- तीन मुख्य बटन -->
   <section class="main-actions">
     <a class="main-action test-btn" href="test-types.html">
@@ -100,12 +80,6 @@
       <div><b>मेरे परिणाम</b><small>अपनी प्रगति देखें</small></div>
     </a>
 
-    <a class="main-action winner-btn" href="leaderboard.html">
-      <span>🏆</span>
-      <div><b>विजेता सूची</b><small>Top विद्यार्थियों को देखें</small></div>
-    </a>
-
-    <!-- अस्थायी मेरी प्रगति बटन: अंतिम Home Design में स्थान बदला जा सकता है -->
     <a class="main-action progress-btn" href="pragati.html">
       <span>📈</span>
       <div><b>मेरी प्रगति</b><small>अपना प्रदर्शन देखें</small></div>
@@ -114,6 +88,8 @@
 
 </main>
 
+<!-- Bottom Navigation Demo: Home / Leaderboard / Progress / Profile -->
+
 <!-- Supabase पहले load होना जरूरी है -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/js/supabase.js"></script>
@@ -121,6 +97,14 @@
 <script src="assets/js/home.js"></script>
 <script src="assets/js/menu.js"></script>
 <script src="assets/js/profile.js"></script>
-<script src="assets/js/leaderboard-home.js"></script>
+
+
+<nav class="bottom-nav" aria-label="मुख्य नेविगेशन">
+  <a href="home.html" data-page="home" class="active"><span class="nav-icon">⌂</span><span class="nav-label">होम</span></a>
+  <a href="leaderboard.html" data-page="leaderboard"><span class="nav-icon">🏆</span><span class="nav-label">रैंकिंग</span></a>
+  <a href="pragati.html" data-page="pragati"><span class="nav-icon">📈</span><span class="nav-label">प्रगति</span></a>
+  <a href="profile.html" data-page="profile"><span class="nav-icon">👤</span><span class="nav-label">प्रोफाइल</span></a>
+</nav>
+
 </body>
 </html>
