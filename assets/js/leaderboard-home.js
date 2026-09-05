@@ -32,12 +32,15 @@ async function addHomeProfilePhotos(rows){
   if(!ids.length) return rows;
 
   const {data,error}=await supabaseClient.from('students')
-    .select('student_id,photo_url').in('student_id',ids);
+    .select('student_id,photo_url,school_name,class_level').in('student_id',ids);
 
   if(error){ console.error('Home profile photos load error:',error); return rows; }
 
-  const photoMap=new Map((data || []).map(s=>[String(s.student_id),s.photo_url || '']));
-  return rows.map(r=>({...r,photo_url:photoMap.get(String(r.student_code)) || r.photo_url || ''}));
+  const profileMap=new Map((data || []).map(s=>[String(s.student_id),s]));
+  return rows.map(r=>{
+    const p=profileMap.get(String(r.student_code)) || {};
+    return {...r,photo_url:p.photo_url || r.photo_url || '',school_name:p.school_name || r.school_name || '',class_level:p.class_level ?? r.class_level ?? ''};
+  });
 }
 
 function setHomeLeaderboardMessage(message){
@@ -95,13 +98,23 @@ function renderTopTen(data){
 
   track.innerHTML=rows.map(r=>{
     const percentage=Number(r.percentage||0).toFixed(1);
+    const timeSeconds=timeValue(r);
+    const timeText=Number.isFinite(timeSeconds) && timeSeconds < 999999999 ? formatHomeDuration(timeSeconds) : '—';
+    const classText=r.class_level ? `कक्षा ${escapeHomeHtml(r.class_level)}` : 'कक्षा —';
+    const testText=r.test_title || r.title || 'मुख्य प्रगति टेस्ट';
     return `<div class="winner-card">
       <div class="winner-number">#${escapeHomeHtml(r.rank_no)}</div>
       <div class="mini-photo">${homePhotoHtml(r)}</div>
       <div class="winner-info">
-        <b>${escapeHomeHtml(r.full_name||'विद्यार्थी')}</b>
-        <div class="winner-score">${escapeHomeHtml(r.score)}/${escapeHomeHtml(r.total_marks)} • ${percentage}%</div>
-        <small>${escapeHomeHtml(r.student_code||'')}</small>
+        <b class="winner-name">${escapeHomeHtml(r.full_name||'विद्यार्थी')}</b>
+        <small class="winner-school">🏫 ${escapeHomeHtml(r.school_name||'विद्यालय —')}</small>
+        <div class="winner-meta">
+          <span>📚 ${classText}</span>
+          <span>🎯 ${escapeHomeHtml(r.score??0)}/${escapeHomeHtml(r.total_marks??0)}</span>
+          <span>📊 ${percentage}%</span>
+          <span>⏱️ ${escapeHomeHtml(timeText)}</span>
+        </div>
+        <small class="winner-test">📝 ${escapeHomeHtml(testText)}</small>
       </div>
     </div>`;
   }).join('');
@@ -143,6 +156,14 @@ async function getHomeStudentClass(){
     return classLevel;
   }
   return null;
+}
+
+
+function formatHomeDuration(seconds){
+  const s=Math.max(0,Math.floor(Number(seconds)||0));
+  const m=Math.floor(s/60);
+  const sec=s%60;
+  return m ? `${m}मि ${String(sec).padStart(2,'0')}से` : `${sec}से`;
 }
 
 function timeValue(r){
@@ -217,7 +238,7 @@ async function loadHomeLeaderboard(){
       p_class_level:classLevel,p_test_id:Number(test.test_id)
     });
     if(error){ console.error('Course leaderboard error:',error); continue; }
-    for(const row of (data||[])) collected.push({test,row});
+    for(const row of (data||[])) collected.push({test,row:{...row,test_title:test.title||row.test_title||''}});
   }
 
   const selectedData=buildCombinedCourseLeaderboard(collected);
