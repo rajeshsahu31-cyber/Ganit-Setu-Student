@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>गणित सेतु | मेरी प्रगति</title>
+  <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="stylesheet" href="assets/css/pragati.css">
+</head>
+<body>
+<div class="progress-page">
+  <header class="progress-topbar">
+    <button class="back-btn" onclick="history.back()" aria-label="वापस">←</button>
+    <div class="brand-wrap">
+      <img src="assets/images/ganit-setu-logo.webp" alt="गणित सेतु">
+      <div><strong>गणित सेतु</strong><small>सीखें • अभ्यास करें • आगे बढ़ें</small></div>
+    </div>
+    <a class="profile-mini" href="profile.html" aria-label="मेरी प्रोफाइल">👤</a>
+  </header>
+
+  <main class="progress-content">
+    <h1>मेरी प्रगति 📊</h1>
+    <p class="page-subtitle">शुरुआत से अब तक आपके प्रदर्शन का सार</p>
+
+    <div id="progressError" class="error-box" hidden></div>
+
+    <section class="summary-grid">
+      <div class="stat-card"><span class="stat-icon">📝</span><b id="totalTests">—</b><small>कुल टेस्ट</small></div>
+      <div class="stat-card"><span class="stat-icon">📈</span><b id="avgScore">—</b><small>औसत स्कोर</small></div>
+      <div class="stat-card"><span class="stat-icon">🏆</span><b id="bestScore">—</b><small>सर्वश्रेष्ठ</small></div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>📚 अध्यायवार प्रदर्शन</h2><span id="classLabel" class="pill">कक्षा —</span></div>
+      <p class="hint">हर अध्याय का अब तक का उपलब्ध प्रदर्शन। बिना प्रयास वाले अध्याय में — रहेगा।</p>
+      <div id="chapterList" class="chapter-list"><div class="loading">प्रगति लोड हो रही है…</div></div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>🎯 अब तक का प्रदर्शन</h2><span class="pill">सभी टेस्ट</span></div>
+      <div class="donut-row">
+        <div id="donut" class="donut"><div id="donutCenter">—</div></div>
+        <div class="legend">
+          <div><i class="dot correct"></i><span>सही</span><b id="correctCount">—</b></div>
+          <div><i class="dot wrong"></i><span>गलत</span><b id="wrongCount">—</b></div>
+          <div><i class="dot unanswered"></i><span>अनुत्तरित</span><b id="unansweredCount">—</b></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>📈 समय के साथ सुधार</h2><span class="pill">पुराने → नए</span></div>
+      <div id="trend" class="trend-chart"><div class="loading">ग्राफ तैयार हो रहा है…</div></div>
+    </section>
+
+    <section class="quote-card">
+      <div class="quote-text">“हर सही उत्तर आपकी मेहनत की जीत है, और हर गलती अगली सफलता की सीढ़ी।”</div>
+      <div class="quote-author">— गणित सेतु</div>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/js/supabase.js"></script>
+<script src="assets/js/pragati.js"></script>
+</body>
+</html>
