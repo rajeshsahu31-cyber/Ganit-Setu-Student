@@ -39,7 +39,7 @@ async function addHomeProfilePhotos(rows){
   const profileMap=new Map((data || []).map(s=>[String(s.student_id),s]));
   return rows.map(r=>{
     const p=profileMap.get(String(r.student_code)) || {};
-    return {...r,photo_url:p.photo_url || r.photo_url || '',school_name:p.school_name || r.school_name || '',class_level:p.class_level ?? r.class_level ?? ''};
+    return {...r, photo_url:p.photo_url || r.photo_url || '', school_name:p.school_name || r.school_name || '', class_level:p.class_level ?? r.class_level ?? ''};
   });
 }
 
@@ -52,7 +52,18 @@ function setHomeLeaderboardMessage(message){
 
 function setHomeDateFromResults(){
   const el=document.getElementById('testDateText');
-  if(el) el.textContent='';
+  if(el) el.textContent='कल की परीक्षा का सर्वश्रेष्ठ प्रदर्शन';
+}
+
+function cleanHomeTestTitle(title=''){
+  return String(title)
+    .replace(/\s*[-–—|,:]\s*(?:date|दिनांक)?\s*[:.-]?\s*\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}\s*$/i,'')
+    .replace(/\s*[-–—|,:]\s*(?:date|दिनांक)?\s*[:.-]?\s*\d{4}[\/.-]\d{1,2}[\/.-]\d{1,2}\s*$/i,'')
+    .replace(/\s*\(\s*\d{1,2}[\/.-]\d{1,2}[\/.-]\d{2,4}\s*\)\s*$/i,'')
+    .replace(/\s*\(\s*\d{4}[\/.-]\d{1,2}[\/.-]\d{1,2}\s*\)\s*$/i,'')
+    .replace(/\s*[-–—|,:]\s*(?:date|दिनांक)?\s*(?:\d{1,2}\s+)?(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?|जनवरी|फरवरी|मार्च|अप्रैल|मई|जून|जुलाई|अगस्त|सितंबर|अक्टूबर|नवंबर|दिसंबर)\s+\d{4}\s*$/i,'')
+    .replace(/\s*[-–—|,:]\s*(?:date|दिनांक)?\s*\d{4}\s*$/i,'')
+    .trim();
 }
 
 function renderTopThree(data){
@@ -71,9 +82,17 @@ function renderTopThree(data){
       <div class="champion-photo">${homePhotoHtml(r)}</div>
       <h3>${escapeHomeHtml(r.full_name||'विद्यार्थी')}</h3>
       <small>${escapeHomeHtml(r.student_code||'')}</small>
+      <small>🏫 ${escapeHomeHtml(r.school_name||'विद्यालय —')}</small>
       <div class="champion-score">${escapeHomeHtml(r.score??0)}/${escapeHomeHtml(r.total_marks??0)} • ${percentage}%</div>
     </div>`;
   }).join('');
+}
+
+function formatHomeDuration(seconds){
+  const s=Math.max(0,Math.floor(Number(seconds)||0));
+  const m=Math.floor(s/60);
+  const sec=s%60;
+  return m ? `${m} मिनट ${String(sec).padStart(2,'0')} सेकंड` : `${sec} सेकंड`;
 }
 
 function renderTopTen(data){
@@ -86,7 +105,7 @@ function renderTopTen(data){
     return;
   }
 
-  track.innerHTML=rows.map(r=>{
+  const cards=rows.map(r=>{
     const percentage=Number(r.percentage||0).toFixed(1);
     const timeSeconds=timeValue(r);
     const timeText=Number.isFinite(timeSeconds) && timeSeconds < 999999999 ? formatHomeDuration(timeSeconds) : '—';
@@ -96,18 +115,19 @@ function renderTopTen(data){
       <div class="winner-number">#${escapeHomeHtml(r.rank_no)}</div>
       <div class="mini-photo">${homePhotoHtml(r)}</div>
       <div class="winner-info">
-        <b class="winner-name">${escapeHomeHtml(r.full_name||'विद्यार्थी')}</b>
-        <small class="winner-school">🏫 ${escapeHomeHtml(r.school_name||'विद्यालय —')}</small>
-        <div class="winner-meta">
-          <span>📚 ${classText}</span>
-          <span>🎯 ${escapeHomeHtml(r.score??0)}/${escapeHomeHtml(r.total_marks??0)}</span>
-          <span>📊 ${percentage}%</span>
-          <span>⏱️ ${escapeHomeHtml(timeText)}</span>
-        </div>
-        <small class="winner-test">📝 ${escapeHomeHtml(testText)}</small>
+        <b>${escapeHomeHtml(r.full_name||'विद्यार्थी')}</b>
+        <small>🏫 ${escapeHomeHtml(r.school_name||'विद्यालय —')}</small>
+        <small>📚 ${classText}</small>
+        <div class="winner-score">🎯 ${escapeHomeHtml(r.score??0)}/${escapeHomeHtml(r.total_marks??0)} • ${percentage}%</div>
+        <small>⏱️ ${escapeHomeHtml(timeText)}</small>
+        <small>📝 ${escapeHomeHtml(testText)}</small>
       </div>
     </div>`;
   }).join('');
+
+  // दो समान सेट: अंत पर बिना रुके seamless continuous scroll के लिए।
+  track.innerHTML=cards+cards;
+  track.scrollLeft=0;
 }
 
 function updateMyRank(data){
@@ -116,15 +136,6 @@ function updateMyRank(data){
   const studentCode=sessionStorage.getItem('ganit_setu_student_id');
   const mine=(data||[]).find(r=>String(r.student_code)===String(studentCode));
   el.textContent=mine ? `#${mine.rank_no}` : '—';
-}
-
-function cleanHomeTestTitle(title=''){
-  return String(title)
-    .replace(/\s*[-–—|,:]\s*(?:date\s*[:.-]?)?\s*\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}\s*$/i,'')
-    .replace(/\s*[-–—|,:]\s*(?:date\s*[:.-]?)?\s*\d{4}[\/-]\d{1,2}[\/-]\d{1,2}\s*$/i,'')
-    .replace(/\s*\(\s*\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}\s*\)\s*$/,'')
-    .replace(/\s*\b(?:date|दिनांक)\s*[:.-]\s*\d{1,2}[\/-]\d{1,2}[\/-]\d{2,4}\s*$/i,'')
-    .trim();
 }
 
 let homeScrollFrame=null;
@@ -141,7 +152,7 @@ function startAutoScroll(){
   if(!track) return;
 
   let lastTime=performance.now();
-  const speed=22; // pixels per second: धीमा और लगातार
+  const speed=18; // pixels per second: धीमा और लगातार
 
   const step=(now)=>{
     if(!document.body.contains(track)){
@@ -149,14 +160,14 @@ function startAutoScroll(){
       return;
     }
 
-    const delta=(now-lastTime)/1000;
+    const delta=Math.min((now-lastTime)/1000,0.1);
     lastTime=now;
 
     if(track.scrollWidth>track.clientWidth){
-      const maxScroll=track.scrollWidth-track.clientWidth;
+      const halfWidth=track.scrollWidth/2;
       track.scrollLeft += speed*delta;
-      if(track.scrollLeft >= maxScroll-1){
-        track.scrollLeft=0;
+      if(track.scrollLeft >= halfWidth){
+        track.scrollLeft -= halfWidth;
       }
     }
 
@@ -183,14 +194,6 @@ async function getHomeStudentClass(){
     return classLevel;
   }
   return null;
-}
-
-
-function formatHomeDuration(seconds){
-  const s=Math.max(0,Math.floor(Number(seconds)||0));
-  const m=Math.floor(s/60);
-  const sec=s%60;
-  return m ? `${m} मिनट ${String(sec).padStart(2,'0')} सेकंड` : `${sec} सेकंड`;
 }
 
 function timeValue(r){
@@ -265,7 +268,7 @@ async function loadHomeLeaderboard(){
       p_class_level:classLevel,p_test_id:Number(test.test_id)
     });
     if(error){ console.error('Course leaderboard error:',error); continue; }
-    for(const row of (data||[])) collected.push({test,row:{...row,test_title:test.title||row.test_title||''}});
+    for(const row of (data||[])) collected.push({test,row});
   }
 
   const selectedData=buildCombinedCourseLeaderboard(collected);
