@@ -381,3 +381,28 @@ body{background:#f5f7fb;color:var(--gs-text);margin:0;font-family:Arial,'Noto Sa
     padding:10px 14px;
   }
 }
+
+/* ===== HOME TOP-10 DETAILS: compact, mobile-safe ===== */
+.winner-card{box-sizing:border-box;min-width:320px;max-width:360px;}
+.winner-info{flex:1;min-width:0;overflow:hidden;}
+.winner-name{white-space:normal !important;overflow-wrap:anywhere !important;word-break:break-word !important;line-height:1.25 !important;}
+.winner-school,.winner-test{white-space:normal !important;overflow-wrap:anywhere !important;word-break:break-word !important;line-height:1.3 !important;}
+.winner-meta{display:grid;grid-template-columns:1fr 1fr;gap:3px 7px;margin:4px 0;min-width:0;}
+.winner-meta span{min-width:0;font-size:10.5px;line-height:1.3;color:var(--gs-muted);white-space:normal;overflow-wrap:anywhere;word-break:break-word;}
+.winner-test{margin-top:2px;}
+
+@media(max-width:700px){
+  .winner-card{min-width:min(86vw,330px);width:min(86vw,330px);max-width:min(86vw,330px);padding:9px;gap:7px;}
+  .winner-number{font-size:12px;flex:none;}
+  .mini-photo{width:40px;height:40px;}
+  .winner-card b{font-size:12px;}
+  .winner-school,.winner-test{font-size:9.5px !important;}
+  .winner-meta span{font-size:9.5px;}
+}
+
+@media(max-width:360px){
+  .winner-card{min-width:88vw;width:88vw;max-width:88vw;padding:8px;}
+  .winner-meta{gap:2px 5px;}
+  .winner-meta span{font-size:9px;}
+  .winner-school,.winner-test{font-size:9px !important;}
+}
