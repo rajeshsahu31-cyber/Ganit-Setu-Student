@@ -14,7 +14,7 @@ body{margin:0;background:#f5f9ff;color:var(--text);font-family:Arial,"Noto Sans 
 .card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px;margin-top:14px;box-shadow:0 5px 18px rgba(20,60,100,.06)}
 .label{font-size:13px;font-weight:700;margin-bottom:8px;display:block}
 input[type=date],select{width:100%;box-sizing:border-box;padding:12px;border:1px solid #cbdbea;border-radius:11px;font-size:15px;background:#fff;color:var(--text)}
-.date-row{display:grid;grid-template-columns:1fr 48px;gap:8px;position:relative}.date-row input[type=text]{width:100%;box-sizing:border-box;padding:12px;border:1px solid #cbdbea;border-radius:11px;font-size:18px;background:#fff;color:var(--text);letter-spacing:.5px}.date-row button{border:1px solid #cbdbea;background:#eef5ff;border-radius:11px;font-size:20px}.date-row input[type=date]{position:absolute;right:56px;top:0;width:1px;height:1px;opacity:0;pointer-events:none}
+.date-row{display:grid;grid-template-columns:1fr 48px;gap:8px;position:relative}.date-row input[type=text]{width:100%;box-sizing:border-box;padding:12px;border:1px solid #cbdbea;border-radius:11px;font-size:18px;background:#fff;color:var(--text);letter-spacing:.5px}.date-row button{border:1px solid #cbdbea;background:#eef5ff;border-radius:11px;font-size:20px}.date-row input[type=date]{position:absolute;left:0;top:0;width:calc(100% - 56px);height:100%;opacity:0;cursor:pointer;z-index:2}.date-row input[type=text]{position:relative;z-index:1;pointer-events:none}.date-row button{position:relative;z-index:3}
 .demo-note{background:var(--blue2);border:1px solid #cfe2fb;border-radius:12px;padding:12px;font-size:12px;line-height:1.55;color:#315a83}
 .attempt{border:1px solid var(--border);border-radius:13px;padding:13px;margin-top:10px}.test-select-wrap{margin-top:10px}.test-select-wrap select{font-size:16px;font-weight:700;padding:13px 12px}.selected-test{margin-top:12px}
 .attempt-top{display:flex;justify-content:space-between;gap:10px}.attempt-title{font-weight:800;font-size:15px}.score{font-weight:800;color:var(--blue);white-space:nowrap}
@@ -380,8 +380,8 @@ async function openReview(index){
       .order('question_order',{ascending:true});
     if(tqError) throw tqError;
 
-    const tq=tq||[];
-    const ids=tq.map(x=>x.question_id).filter(Boolean);
+    const tqRows=tq||[];
+    const ids=tqRows.map(x=>x.question_id).filter(Boolean);
     if(!ids.length){
       qbox.innerHTML='<div class="empty">इस Test का प्रश्नपत्र उपलब्ध नहीं है।</div>';
       return;
@@ -394,7 +394,7 @@ async function openReview(index){
     if(qError) throw qError;
 
     const byId=new Map((qData||[]).map(q=>[String(q.id),q]));
-    const questions=tq.map(x=>byId.get(String(x.question_id))).filter(Boolean);
+    const questions=tqRows.map(x=>byId.get(String(x.question_id))).filter(Boolean);
 
     // Student answers optional हैं। अगर schema अलग हो/answer rows न मिलें,
     // तो भी पूरा प्रश्नपत्र और सही उत्तर अवश्य खुलेगा।
@@ -425,7 +425,7 @@ async function openReview(index){
       console.warn('Student answer rows unavailable; showing question paper only:',answerError);
     }
 
-    const total=Number(r.total_marks||r.total_questions||tq.length||0);
+    const total=Number(r.total_marks||r.total_questions||tqRows.length||0);
     document.getElementById('reviewMeta').innerHTML=`<b>${esc(testLabel(r))}</b><br>तारीख: ${formatDMY(document.getElementById('date').value)} &nbsp; | &nbsp; अंक: <b>${score}/${total}</b>`;
     if(!questions.length){qbox.innerHTML='<div class="empty">इस attempt का प्रश्नपत्र उपलब्ध नहीं है।</div>';return;}
 
@@ -445,14 +445,7 @@ async function openReview(index){
 
 const dateInput=document.getElementById('date'), dateDisplay=document.getElementById('dateDisplay'), datePick=document.getElementById('datePick');
 function syncDisplay(){dateDisplay.value=formatDMY(dateInput.value);}
-dateDisplay.addEventListener('input',()=>{
-  let v=dateDisplay.value.replace(/\D/g,'').slice(0,8);
-  if(v.length>4)v=v.slice(0,2)+'/'+v.slice(2,4)+'/'+v.slice(4);
-  else if(v.length>2)v=v.slice(0,2)+'/'+v.slice(2);
-  dateDisplay.value=v;
-  const iso=parseDMY(v); if(iso){dateInput.value=iso;loadAttempts();}
-});
-dateDisplay.addEventListener('blur',()=>{if(dateDisplay.value&&!parseDMY(dateDisplay.value)) syncDisplay();});
+dateDisplay.setAttribute('readonly','readonly');
 datePick.addEventListener('click',()=>{try{dateInput.showPicker();}catch(e){dateInput.click();}});
 dateInput.addEventListener('change',()=>{syncDisplay();loadAttempts();});
 dateInput.value=indiaToday();
