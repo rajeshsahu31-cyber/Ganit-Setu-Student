@@ -370,7 +370,7 @@ async function openReview(index){
 
     const [tqRes,ansRes]=await Promise.all([
       db.from('test_questions').select('question_id,question_order').eq('test_id',testId).order('question_order',{ascending:true}),
-      db.from('student_answers').select('question_id,selected_option,is_correct,time_taken_seconds').eq('student_id',student.id).eq('test_id',testId)
+      db.from('student_answers').select('question_id,selected_option,is_correct').eq('student_id',student.id).eq('test_id',testId)
     ]);
     if(tqRes.error) throw tqRes.error;
     if(ansRes.error) throw ansRes.error;
