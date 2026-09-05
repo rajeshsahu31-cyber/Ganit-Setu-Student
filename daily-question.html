@@ -1,69 +1,216 @@
 <!DOCTYPE html>
 <html lang="hi">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Daily Test | गणित सेतु</title>
-  <link rel="stylesheet" href="assets/css/style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0867d8">
+<title>Test 3 – आज की तैयारी परखें | गणित सेतु</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Devanagari:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/style.css">
+<style>
+
+/* Test 1 visual layer only. Existing test.js and home.css are untouched. Compact mobile-first layout. */
+:root{--gs-blue:#0867d8;--gs-blue2:#087df0;--gs-deep:#073b82;--gs-soft:#eef7ff;--gs-line:#d6e8fa;--gs-text:#102e58;--gs-muted:#5e7898;--gs-shadow:0 10px 28px rgba(22,91,160,.10)}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:"Noto Sans Devanagari",system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--gs-text);background:linear-gradient(180deg,#f7fbff 0%,#fff 72%);overflow-x:hidden}
+body{padding-bottom:18px}
+.gs-header{height:72px;background:linear-gradient(110deg,#0757b8,#0875df);color:#fff;display:flex;align-items:center;padding:0 18px;box-shadow:0 4px 16px rgba(4,74,150,.18);position:sticky;top:0;z-index:10}
+.gs-head-inner{width:min(100%,1120px);margin:auto;display:flex;align-items:center;gap:14px}
+.gs-logo{width:50px;height:50px;object-fit:contain;flex:0 0 50px;filter:drop-shadow(0 3px 4px rgba(0,0,0,.12))}
+.gs-brand{line-height:1.05;min-width:0}.gs-brand.no-logo{margin-left:0}.gs-brand strong{font-size:25px;font-weight:800;letter-spacing:-.5px;display:block;white-space:nowrap}.gs-brand strong span{color:#ffd329}.gs-brand small{display:block;font-size:10px;margin-top:5px;opacity:.95;letter-spacing:.3px}
+.gs-class{margin-left:auto;background:rgba(255,255,255,.17);border:1px solid rgba(255,255,255,.24);padding:9px 14px;border-radius:24px;font-size:14px;font-weight:700;white-space:nowrap}
+.gs-user{width:38px;height:38px;border-radius:50%;background:#fff;color:var(--gs-blue);display:grid;place-items:center;font-size:20px;flex:0 0 38px}
+.gs-wrap{width:min(100%,760px);margin:0 auto;padding:18px 14px 10px}
+.gs-back{display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:var(--gs-blue);background:#eaf5ff;border:1px solid #c9e3fb;border-radius:22px;padding:8px 13px;font-size:13px;font-weight:700;margin-bottom:14px}
+.gs-card{background:#fff;border:1px solid var(--gs-line);border-radius:22px;box-shadow:var(--gs-shadow);overflow:hidden}
+.gs-setup{padding:24px 20px 20px;text-align:center}
+.gs-title-icon{width:62px;height:62px;border-radius:50%;background:#eaf5ff;color:var(--gs-blue);display:grid;place-items:center;font-size:31px;margin:0 auto 11px}
+.gs-h1{font-size:25px;line-height:1.3;margin:0;color:#123b72;font-weight:800}.gs-subtitle{display:inline-block;margin:8px 0 10px;padding:6px 15px;border:1px solid #b9ddfb;background:#f1f8ff;border-radius:18px;font-size:15px;font-weight:700;color:#0a5fbf}.gs-desc{font-size:14px;line-height:1.8;color:var(--gs-muted);margin:3px auto 17px;max-width:560px}
+.gs-info{border-top:1px solid #e8f1f9;margin-top:5px;text-align:left}.gs-info-row{display:flex;align-items:center;gap:11px;padding:12px 3px;border-bottom:1px solid #edf3f8;min-width:0}.gs-info-icon{width:34px;height:34px;border-radius:50%;background:#edf7ff;color:var(--gs-blue);display:grid;place-items:center;flex:0 0 34px;font-size:16px}.gs-info-label{font-size:13px;color:#58708d;flex:1;min-width:0}.gs-info-value{font-size:14px;font-weight:800;color:#173b6c;text-align:right;max-width:62%;overflow-wrap:anywhere}
+.gs-instruction{margin:17px 0 16px;padding:15px 15px 13px;background:#edf8ff;border-radius:17px;text-align:left;border:1px solid #d6ebfb}.gs-instruction h3{margin:0 0 8px;color:var(--gs-blue);font-size:15px}.gs-instruction ul{margin:0;padding-left:19px;color:#355879;font-size:13px;line-height:1.8}.gs-instruction li{padding-left:2px}
+.gs-note{font-size:14px;color:#4f7195;margin:10px 0 17px;font-weight:600}
+.gs-select-wrap{text-align:left;margin:0 auto 15px;max-width:520px}.gs-select-wrap label{display:block;font-size:13px;font-weight:700;color:#355b80;margin:0 0 7px}.gs-select{width:100%;height:48px;border:1px solid #bcdcf7;border-radius:13px;background:#fff;color:#173b6c;font:600 14px "Noto Sans Devanagari",sans-serif;padding:0 13px;outline:none}.gs-select:focus{border-color:#1680ed;box-shadow:0 0 0 3px rgba(8,125,240,.12)}
+.gs-primary{width:100%;border:0;border-radius:15px;background:linear-gradient(100deg,#0766d8,#087df0);color:#fff;font:800 16px "Noto Sans Devanagari",sans-serif;padding:14px 16px;cursor:pointer;box-shadow:0 8px 18px rgba(8,103,216,.20);transition:transform .15s ease,box-shadow .15s ease}.gs-primary:active{transform:translateY(1px)}.gs-primary:disabled{opacity:.65;cursor:not-allowed}
+.gs-message{margin-top:12px}.error-box,.success-box{border-radius:14px;padding:14px;font-size:13px;line-height:1.7}.error-box{background:#fff1f1;border:1px solid #ffcaca;color:#a32626}.success-box{background:#effcf4;border:1px solid #c9efd8;color:#17683c;text-align:center}.success-box .primary-btn{margin-top:10px}
+.gs-test{padding:16px 14px 18px}.gs-test-top{display:flex;align-items:center;gap:10px;margin-bottom:13px}.gs-round-back{width:42px;height:42px;border-radius:50%;border:1px solid #cfe5fa;background:#f0f8ff;color:var(--gs-blue);font-size:24px;display:grid;place-items:center;text-decoration:none;flex:0 0 42px}.gs-test-heading{min-width:0;flex:1}.gs-test-heading h1{margin:0;font-size:20px;line-height:1.35;color:#123b72;font-weight:800;overflow-wrap:anywhere}.gs-test-heading p{margin:2px 0 0;font-size:12px;color:#6a84a0}.gs-timer{background:#fff2f2;border:1px solid #ffbcbc;color:#a51f2a;border-radius:14px;padding:7px 10px;text-align:center;min-width:84px;white-space:nowrap}.gs-timer small{display:block;font-size:10px;font-weight:700}.gs-timer strong{display:block;font-size:16px;line-height:1.3}
+.gs-progress{background:#fff;border:1px solid var(--gs-line);border-radius:17px;padding:12px 14px;margin-bottom:13px}.gs-progress-line{display:flex;justify-content:space-between;gap:8px;font-size:12px;font-weight:800;color:#244b77}.gs-progress-track{height:9px;border-radius:99px;background:#dcecf9;overflow:hidden;margin-top:8px}.gs-progress-bar{height:100%;width:2%;border-radius:99px;background:linear-gradient(90deg,#0874e6,#1b91f4);transition:width .2s ease}
+.gs-question{background:linear-gradient(145deg,#f2f9ff,#fff);border:1px solid #c8e4fb;border-radius:19px;padding:17px 15px 15px}.gs-qhead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}.gs-qbadge{background:linear-gradient(100deg,#0874e6,#178ff4);color:#fff;border-radius:18px;padding:6px 12px;font-size:13px;font-weight:800}.gs-mark{background:#e4f1ff;color:#164a80;border-radius:13px;padding:6px 10px;font-size:12px;font-weight:800;white-space:nowrap}.gs-question-text{font-size:17px;line-height:1.75;color:#172f50;font-weight:600;overflow-wrap:anywhere}.chapter-label{font-size:12px;line-height:1.5;color:#2871b8;background:#eaf6ff;border-radius:10px;padding:5px 8px;display:inline-block;margin-bottom:10px;font-weight:700;overflow-wrap:anywhere}
+.gs-options{display:grid;gap:10px;margin-top:14px}.option-btn{width:100%;display:flex;align-items:flex-start;gap:10px;text-align:left;background:#fff;border:1.5px solid #dce7f0;border-radius:14px;padding:11px 12px;color:#1c2f49;font:600 14px/1.55 "Noto Sans Devanagari",sans-serif;cursor:pointer;overflow-wrap:anywhere;min-width:0}.option-btn b{width:31px;height:31px;border-radius:50%;background:#edf3f8;color:#183858;display:grid;place-items:center;flex:0 0 31px;font-size:13px}.option-btn.selected{border-color:#087cf0;background:#eef8ff;box-shadow:0 0 0 1px rgba(8,124,240,.08)}.option-btn.selected b{background:#087cf0;color:#fff}
+.gs-nav{display:grid;grid-template-columns:1fr 1.15fr;gap:10px;margin-top:14px}.gs-nav .outline-btn,.gs-nav .primary-btn{min-height:50px;border-radius:14px;font:800 14px "Noto Sans Devanagari",sans-serif}.gs-nav .outline-btn{border:1px solid #cfe1ef;background:#eef6fb;color:#6a839c}.gs-nav .primary-btn{border:0;background:linear-gradient(100deg,#0870df,#087ff2);color:#fff}.gs-foot-note{margin-top:12px;text-align:center;background:#eef8ff;border-radius:12px;padding:9px 10px;color:#66809a;font-size:11px;line-height:1.5}
+.gs-footer{text-align:center;color:#6b87a5;font-size:11px;padding:15px 8px 0}.gs-footer strong{display:block;color:#1d5f9d;font-size:13px;margin-bottom:2px}
+/* Keep legacy IDs/classes functional; only their visual shell is replaced here. */
+#courseSetup,#courseTest{max-width:100%}
+#courseTest{display:none}
+#courseMessage:empty{display:none}
+.primary-btn,.outline-btn{font-family:"Noto Sans Devanagari",sans-serif}
+@media (max-width:560px){
+ .gs-header{height:64px;padding:0 10px}.gs-head-inner{gap:8px;min-width:0}.gs-logo{width:43px;height:43px;flex:0 0 43px}.gs-brand{flex:1;min-width:0;overflow:visible}.gs-brand strong{font-size:20px;line-height:1.05;white-space:nowrap}.gs-brand small{font-size:8px;margin-top:3px;white-space:nowrap}.gs-class{margin-left:auto;flex:0 0 auto;padding:7px 9px;font-size:11px}.gs-user{width:33px;height:33px;flex:0 0 33px;font-size:17px}.gs-wrap{padding:12px 9px}.gs-back{margin-bottom:10px;font-size:12px;padding:7px 11px}.gs-setup{padding:19px 13px 15px}.gs-title-icon{width:53px;height:53px;font-size:26px}.gs-h1{font-size:21px}.gs-subtitle{font-size:13px;padding:5px 12px}.gs-desc{font-size:12px;line-height:1.7}.gs-info-row{padding:10px 1px;gap:8px}.gs-info-icon{width:30px;height:30px;flex-basis:30px;font-size:14px}.gs-info-label{font-size:11px}.gs-info-value{font-size:12px;max-width:59%}.gs-instruction{padding:12px 12px 10px;margin:13px 0}.gs-instruction h3{font-size:13px}.gs-instruction ul{font-size:11px;line-height:1.7;padding-left:17px}.gs-note{font-size:11px}.gs-select{height:44px;font-size:13px}.gs-primary{font-size:14px;padding:12px}.gs-test{padding:11px 9px 13px}.gs-test-top{gap:7px}.gs-round-back{width:36px;height:36px;flex-basis:36px;font-size:21px}.gs-test-heading h1{font-size:16px}.gs-test-heading p{font-size:10px}.gs-timer{min-width:72px;padding:5px 7px;border-radius:11px}.gs-timer small{font-size:8px}.gs-timer strong{font-size:13px}.gs-progress{padding:10px 11px;border-radius:14px}.gs-progress-line{font-size:10px}.gs-progress-track{height:7px}.gs-question{padding:13px 11px 12px;border-radius:16px}.gs-qbadge{font-size:11px;padding:5px 9px}.gs-mark{font-size:10px;padding:5px 8px}.gs-question-text{font-size:14px;line-height:1.7}.chapter-label{font-size:10px;padding:4px 6px}.gs-options{gap:8px;margin-top:11px}.option-btn{font-size:12px;line-height:1.5;padding:9px 9px;gap:8px;border-radius:12px}.option-btn b{width:27px;height:27px;flex-basis:27px;font-size:11px}.gs-nav{gap:8px;margin-top:11px}.gs-nav .outline-btn,.gs-nav .primary-btn{min-height:44px;font-size:12px}.gs-foot-note{font-size:9px;padding:7px}.gs-footer{font-size:9px;padding-top:10px}.gs-footer strong{font-size:11px}
+}
+
+@media (max-width:560px){
+  html,body{font-size:14px}
+  .gs-header{height:58px;padding:0 8px}
+  .gs-head-inner{gap:6px;min-width:0}
+  .gs-logo{width:38px;height:38px;flex:0 0 38px}
+  .gs-brand{flex:1;min-width:0;overflow:visible}
+  .gs-brand strong{font-size:18px;letter-spacing:-.4px;white-space:nowrap}
+  .gs-brand small{font-size:7px;margin-top:2px;white-space:nowrap}
+  .gs-class{margin-left:auto;flex:0 0 auto;padding:6px 7px;font-size:10px}
+  .gs-user{width:30px;height:30px;flex:0 0 30px;font-size:15px}
+  .gs-wrap{width:100%;padding:7px 7px 5px}
+  .gs-back{margin-bottom:6px;padding:5px 9px;font-size:10px;border-radius:18px}
+  .gs-card{border-radius:17px}
+  .gs-setup{padding:11px 10px 10px}
+  .gs-title-icon{width:42px;height:42px;font-size:21px;margin-bottom:5px}
+  .gs-h1{font-size:19px;line-height:1.22}
+  .gs-subtitle{font-size:11px;padding:3px 9px;margin:4px 0 5px}
+  .gs-desc{font-size:10.5px;line-height:1.45;margin:2px auto 7px}
+  .gs-info{margin-top:2px}
+  .gs-info-row{padding:6px 0;gap:7px}
+  .gs-info-icon{width:25px;height:25px;flex-basis:25px;font-size:11px}
+  .gs-info-label{font-size:10px}
+  .gs-info-value{font-size:10.5px;max-width:62%}
+  .gs-instruction{margin:7px 0;padding:7px 9px 6px;border-radius:11px}
+  .gs-instruction h3{font-size:11px;margin-bottom:3px}
+  .gs-instruction ul{font-size:9.5px;line-height:1.4;padding-left:15px}
+  .gs-instruction li{padding-left:0}
+  .gs-select-wrap{margin:0 auto 7px}
+  .gs-select-wrap label{font-size:10px;margin-bottom:3px}
+  .gs-select{height:37px;border-radius:10px;font-size:11px;padding:0 9px}
+  .gs-note{font-size:9.5px;margin:5px 0 7px}
+  .gs-primary{font-size:12px;padding:9px 10px;border-radius:11px;box-shadow:0 5px 12px rgba(8,103,216,.16)}
+  .gs-message{margin-top:6px}
+  .error-box,.success-box{padding:9px;font-size:10px}
+  .gs-test{padding:8px 8px 9px}
+  .gs-test-top{gap:6px;margin-bottom:7px}
+  .gs-round-back{width:32px;height:32px;flex-basis:32px;font-size:18px}
+  .gs-test-heading h1{font-size:14px;line-height:1.2}
+  .gs-test-heading p{font-size:9px;margin-top:1px}
+  .gs-timer{min-width:68px;padding:4px 6px;border-radius:9px}
+  .gs-timer small{font-size:7px}
+  .gs-timer strong{font-size:11px}
+  .gs-progress{padding:7px 9px;border-radius:11px;margin-bottom:7px}
+  .gs-progress-line{font-size:9px}
+  .gs-progress-track{height:5px;margin-top:5px}
+  .gs-question{padding:9px 9px 8px;border-radius:12px}
+  .gs-qhead{gap:6px;margin-bottom:6px}
+  .gs-qbadge{font-size:9px;padding:4px 7px;border-radius:12px}
+  .gs-mark{font-size:8px;padding:4px 6px;border-radius:9px}
+  .chapter-label{font-size:8px;padding:3px 5px;margin-bottom:5px}
+  .gs-question-text{font-size:12px;line-height:1.45}
+  .gs-options{gap:5px;margin-top:7px}
+  .option-btn{font-size:10.5px;line-height:1.35;padding:6px 7px;gap:6px;border-radius:9px}
+  .option-btn b{width:23px;height:23px;flex-basis:23px;font-size:9px}
+  .gs-nav{gap:6px;margin-top:7px}
+  .gs-nav .outline-btn,.gs-nav .primary-btn{min-height:36px;font-size:10.5px;border-radius:10px}
+  .gs-foot-note{margin-top:6px;font-size:8px;padding:5px 6px;border-radius:8px}
+  .gs-footer{font-size:8px;padding-top:5px}
+  .gs-footer strong{font-size:9px;margin-bottom:0}
+}
+
+
+
+.answer-entry{background:#fff;border:1px solid #dce7f0;border-radius:14px;padding:10px 11px}.answer-label{display:block!important;margin:0 0 6px!important;font-size:11px!important;color:#355b80!important;font-weight:700!important}.problem-answer{width:100%;height:44px;border:1px solid #bcdcf7;border-radius:11px;background:#fbfdff;color:#173b6c;font:600 14px "Noto Sans Devanagari",sans-serif;padding:0 11px;outline:none}.problem-answer:focus{border-color:#1680ed;box-shadow:0 0 0 3px rgba(8,125,240,.10)}
+@media(max-width:560px){.answer-entry{padding:7px 8px;border-radius:10px}.answer-label{font-size:9px!important;margin-bottom:4px!important}.problem-answer{height:36px;font-size:11px;border-radius:9px;padding:0 8px}}
+</style>
 </head>
 <body>
-
-<header class="simple-header">
-  <a href="test-types.html">← टेस्ट</a>
-  <div class="mini-brand">Daily Test</div>
+<header class="gs-header">
+  <div class="gs-head-inner">
+    <img class="gs-logo" src="assets/images/ganit-setu-logo.webp" alt="गणित सेतु" onerror="this.style.display='none';this.nextElementSibling.classList.add('no-logo')">
+    <div class="gs-brand"><strong>गणित <span>सेतु</span></strong><small>सीखें • अभ्यास करें • आगे बढ़ें</small></div>
+    <div class="gs-class" id="headerClass">कक्षा 10वीं</div>
+    <div class="gs-user" aria-hidden="true">●</div>
+  </div>
 </header>
-
-<main class="page narrow">
-
-  <!-- Daily Test शुरू करने का भाग -->
-  <section id="dailySetup" class="panel test-panel">
-    <h1>📅 Daily Test</h1>
-
-    <p class="muted">
-      आज आपको 5 Random Questions दिए जाएंगे।
-    </p>
-
-    <button id="dailyStartBtn" class="primary-btn">
-      Daily Test शुरू करें
-    </button>
-
-    <div id="dailyMessage"></div>
-  </section>
-
-  <!-- Questions -->
-  <section id="dailyTest"
-           class="panel test-panel"
-           style="display:none">
-
-    <div class="test-meta">
-      <span id="dailyTitle"></span>
-      <span id="timer">⏱️ 00:00</span>
+<main class="gs-wrap">
+  <a class="gs-back" href="test-types.html">⌂ &nbsp;टेस्ट पेज पर वापस</a>
+  <section class="gs-card">
+    <div id="dailySetup" class="gs-setup">
+      <div class="gs-title-icon">🎯</div>
+      <h1 class="gs-h1">Test 3 – आज की तैयारी परखें</h1>
+      <div class="gs-subtitle">Daily Test</div>
+      <p class="gs-desc">हर दिन अपनी तैयारी जाँचने के लिए 5 नए प्रश्न हल करें और नियमित अभ्यास बनाए रखें।</p>
+      <div class="gs-info"><div class="gs-info-row"><span class="gs-info-icon">▤</span><span class="gs-info-label">प्रश्न</span><strong class="gs-info-value">5 प्रश्न</strong></div><div class="gs-info-row"><span class="gs-info-icon">✍</span><span class="gs-info-label">टेस्ट प्रकार</span><strong class="gs-info-value">हल करने वाले प्रश्न</strong></div><div class="gs-info-row"><span class="gs-info-icon">▥</span><span class="gs-info-label">पाठ्यक्रम</span><strong class="gs-info-value" id="dailySyllabusInfo">पढ़े हुए अध्यायों तक</strong></div><div class="gs-info-row"><span class="gs-info-icon">✓</span><span class="gs-info-label">परिणाम</span><strong class="gs-info-value">तुरंत उपलब्ध</strong></div></div>
+      <div class="gs-instruction">
+        <h3>💡 महत्वपूर्ण निर्देश</h3>
+        <ul><li>आपने जितने अध्याय तक पढ़ाई की है, केवल उन्हीं अध्यायों से 5 प्रश्न दिए जाएंगे।</li><li>हर प्रश्न को पहले कॉपी में पूरा हल करें और फिर अपना अंतिम उत्तर यहाँ दर्ज करें।</li><li>जहाँ एक से अधिक उत्तर होंगे, उनके लिए अलग-अलग उत्तर बॉक्स दिए जाएंगे।</li><li>सभी 5 प्रश्नों का उत्तर देकर ही टेस्ट Submit करें।</li></ul>
+      </div>
+      <div class="gs-select-wrap">
+  <label for="dailyChapterTo">आपने कितने अध्याय तक पढ़ाई की है?</label>
+  <select id="dailyChapterTo" class="gs-select">
+    <option value="">अध्याय चुनें</option>
+  </select>
+  <div id="dailyClassInfo" style="margin-top:6px;color:#6a84a0;font-size:11px"></div>
+</div>
+      <p class="gs-note">रोज़ थोड़ा अभ्यास, तैयारी में बड़ा सुधार।</p>
+      <button class="gs-primary" id="dailyStartBtn" type="button">▶ &nbsp;अब टेस्ट शुरू करें&nbsp; →</button>
+      <div id="dailyMessage" class="gs-message"></div>
     </div>
 
-    <div id="questionNo"></div>
-
-    <div id="questionText" class="question-box"></div>
-
-    <div id="options" class="options"></div>
-
-    <div class="test-nav">
-      <button class="outline-btn"
-              onclick="location.href='test-types.html'">
-        बाहर जाएँ
-      </button>
-
-      <button id="nextQuestion" class="primary-btn">
-        अगला प्रश्न →
-      </button>
+    <div id="dailyTest" class="gs-test" style="display:none">
+      <div class="gs-test-top">
+        <a class="gs-round-back" href="test-types.html" aria-label="वापस">←</a>
+        <div class="gs-test-heading"><h1>Test 3 – आज की तैयारी परखें</h1><p id="dailyTitle">कक्षा</p></div>
+        <div class="gs-timer"><small>चला हुआ समय</small><strong id="timer">⏱️ 00:00</strong></div>
+      </div>
+      <div class="gs-progress">
+        <div class="gs-progress-line"><span id="questionNo">प्रश्न 1 / 0</span><span id="questionCount">5 प्रश्न</span><span id="questionPercent">0% पूर्ण</span></div>
+        <div class="gs-progress-track"><div class="gs-progress-bar" id="questionProgress"></div></div>
+      </div>
+      <div class="gs-question">
+        <div class="gs-qhead"><span class="gs-qbadge" id="questionBadge">प्रश्न 1</span><span class="gs-mark">1 अंक</span></div>
+        <div class="gs-question-text" id="questionText"></div>
+        <div class="gs-options" id="options"></div>
+      </div>
+      <div class="gs-nav">
+        <button class="outline-btn" id="exitTest" type="button">← &nbsp;बाहर जाएँ</button>
+        <button class="primary-btn" id="nextQuestion" type="button">अगला प्रश्न&nbsp; →</button>
+      </div>
+      <div class="gs-foot-note">ⓘ &nbsp; पहले कॉपी में हल करें, फिर अपना अंतिम उत्तर दर्ज करें।</div>
     </div>
-
   </section>
-
+  <div class="gs-footer"><strong>📖 गणित सेतु</strong>सीखें • अभ्यास करें • आगे बढ़ें</div>
 </main>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/js/supabase.js"></script>
 <script src="assets/js/test.js"></script>
+<script>
+(function(){
+  function syncHeader(){
+    var c=document.getElementById('chapterClassInfo')||document.getElementById('dailyTitle');
+    var h=document.getElementById('headerClass');
+    if(c&&h){
+      var m=(c.textContent||'').match(/कक्षा\s*(9|10)/);
+      if(m) h.textContent='कक्षा '+m[1]+'वीं';
+    }
+  }
+  var observer=new MutationObserver(syncHeader);
+  var target=document.getElementById('chapterClassInfo')||document.getElementById('dailyTitle');
+  if(target) observer.observe(target,{childList:true,subtree:true,characterData:true});
+  setTimeout(syncHeader,500);
 
+  function syncProgress(){
+    var box=document.getElementById('chapterTest')||document.getElementById('dailyTest');
+    var setup=document.getElementById('chapterSetup')||document.getElementById('dailySetup');
+    if(box && box.style.display==='block'){
+      var qn=document.getElementById('questionNo'), bar=document.getElementById('questionProgress'), pct=document.getElementById('questionPercent'), badge=document.getElementById('questionBadge');
+      if(qn){
+        var m=(qn.textContent||'').match(/(\d+)\s*\/\s*(\d+)/);
+        if(m){var p=Math.round((Number(m[1])/Math.max(1,Number(m[2])))*100); if(bar)bar.style.width=p+'%'; if(pct)pct.textContent=p+'% पूर्ण'; if(badge)badge.textContent='प्रश्न '+m[1];}
+      }
+    }
+    if(setup) setup.style.display=box&&box.style.display==='block'?'none':'';
+  }
+  setInterval(syncProgress,300);
+
+  var exit=document.getElementById('exitTest');
+  if(exit) exit.addEventListener('click',function(){
+    if(confirm('क्या आप टेस्ट से बाहर जाना चाहते हैं? अभी तक के उत्तर सुरक्षित नहीं किए जाएंगे।')) location.href='test-types.html';
+  });
+})();
+</script>
 </body>
 </html>
