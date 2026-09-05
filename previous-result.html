@@ -116,6 +116,7 @@ function duration(sec){
 }
 
 let currentRows=[];
+let selectedISODate='';
 
 function resetReview(){
   document.getElementById('review').classList.remove('show');
@@ -139,7 +140,7 @@ async function getStudent(){
 }
 
 async function loadAttempts(){
-  const date=document.getElementById('date').value;
+  const date=selectedISODate;
   const box=document.getElementById('attempts');
   resetReview();
   currentRows=[];
@@ -277,7 +278,7 @@ async function openReview(index){
 
     document.getElementById('reviewMeta').innerHTML=`
       <b>${esc(testLabel(r.tests))}</b><br>
-      तारीख: ${formatDMY(document.getElementById('date').value)} &nbsp; | &nbsp;
+      तारीख: ${formatDMY(selectedISODate)} &nbsp; | &nbsp;
       अंक: <b>${r._score}/${r._total}</b> &nbsp; | &nbsp;
       सही: ${r._correct} • गलत: ${r._wrong} • छोड़े: ${r._unattempted}
     `;
@@ -307,7 +308,8 @@ const nativeDate=document.getElementById('dateNative');
 const datePickerBtn=document.getElementById('datePickerBtn');
 
 function syncVisibleDate(){
-  dateInput.value = nativeDate.value ? formatDMY(nativeDate.value) : '';
+  selectedISODate = nativeDate.value || '';
+  dateInput.value = selectedISODate ? formatDMY(selectedISODate) : '';
 }
 function openCalendar(){
   try{
