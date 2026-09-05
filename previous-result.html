@@ -14,6 +14,10 @@ body{margin:0;background:#f5f9ff;color:var(--text);font-family:Arial,"Noto Sans 
 .card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px;margin-top:14px;box-shadow:0 5px 18px rgba(20,60,100,.06)}
 .label{font-size:13px;font-weight:700;margin-bottom:8px;display:block}
 input[type=date],select{width:100%;box-sizing:border-box;padding:12px;border:1px solid #cbdbea;border-radius:11px;font-size:15px;background:#fff;color:var(--text)}
+.date-picker-wrap{position:relative;display:flex;gap:8px}
+#date{flex:1;width:auto;box-sizing:border-box;padding:12px;border:1px solid #cbdbea;border-radius:11px;font-size:15px;background:#fff;color:var(--text)}
+.date-picker-btn{width:54px;border:1px solid #cbdbea;border-radius:11px;background:#eef6ff;font-size:22px;cursor:pointer}
+#dateNative{position:absolute;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none}
 .demo-note{background:var(--blue2);border:1px solid #cfe2fb;border-radius:12px;padding:12px;font-size:12px;line-height:1.55;color:#315a83}
 .attempt{border:1px solid var(--border);border-radius:13px;padding:13px;margin-top:10px}.test-select-wrap{margin-top:10px}.test-select-wrap select{font-size:16px;font-weight:700;padding:13px 12px}.selected-test{margin-top:12px}
 .attempt-top{display:flex;justify-content:space-between;gap:10px}.attempt-title{font-weight:800;font-size:15px}.score{font-weight:800;color:var(--blue);white-space:nowrap}
@@ -35,7 +39,11 @@ input[type=date],select{width:100%;box-sizing:border-box;padding:12px;border:1px
 
 <section class="card">
 <label class="label" for="date">📅 तारीख चुनें</label>
-<input id="date" type="date">
+<div class="date-picker-wrap">
+  <input id="date" type="text" inputmode="none" autocomplete="off" placeholder="DD/MM/YYYY" readonly aria-label="तारीख चुनें">
+  <button id="datePickerBtn" type="button" class="date-picker-btn" aria-label="कैलेंडर खोलें">📅</button>
+  <input id="dateNative" type="date" tabindex="-1" aria-hidden="true">
+</div>
 <div class="demo-note" style="margin-top:10px">एक समय में केवल चुनी हुई तारीख का वास्तविक Supabase रिकॉर्ड दिखेगा। सभी पुराने attempts database में सुरक्षित रहेंगे।</div>
 </section>
 
@@ -58,6 +66,7 @@ input[type=date],select{width:100%;box-sizing:border-box;padding:12px;border:1px
 <a href="profile.html"><span>👤</span>प्रोफाइल</a>
 </nav>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/js/supabase.js"></script>
 <script>
 'use strict';
@@ -94,6 +103,9 @@ function formatDMY(iso){
 
 function testLabel(t){
   const map={course_progress:'कोर्स टेस्ट',chapter_practice:'अध्याय टेस्ट',daily:'Practice Test'};
+  if(String(t?.test_type || '').toLowerCase()==='daily') return 'Practice Test';
+  if(String(t?.test_type || '').toLowerCase()==='course_progress') return 'Course Test';
+  if(String(t?.test_type || '').toLowerCase()==='chapter_practice') return 'Chapter Test';
   return t?.title || map[t?.test_type] || 'टेस्ट';
 }
 
@@ -291,8 +303,23 @@ async function openReview(index){
 }
 
 const dateInput=document.getElementById('date');
-dateInput.addEventListener('change',loadAttempts);
-dateInput.value=indiaToday();
+const nativeDate=document.getElementById('dateNative');
+const datePickerBtn=document.getElementById('datePickerBtn');
+
+function syncVisibleDate(){
+  dateInput.value = nativeDate.value ? formatDMY(nativeDate.value) : '';
+}
+function openCalendar(){
+  try{
+    if(typeof nativeDate.showPicker === 'function') nativeDate.showPicker();
+    else nativeDate.click();
+  }catch(e){ nativeDate.click(); }
+}
+dateInput.addEventListener('click',openCalendar);
+datePickerBtn.addEventListener('click',openCalendar);
+nativeDate.addEventListener('change',()=>{ syncVisibleDate(); loadAttempts(); });
+nativeDate.value=indiaToday();
+syncVisibleDate();
 loadAttempts();
 </script>
 </body>
