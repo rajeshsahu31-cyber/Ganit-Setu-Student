@@ -20,6 +20,49 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const photoInput = document.getElementById('photoInput');
   const uploadPhotoBtn = document.getElementById('uploadPhotoBtn');
+    // Camera + Gallery chooser. Existing upload/storage flow remains unchanged.
+    function ensureCameraGalleryChooser() {
+      if (document.getElementById('cameraGalleryChooser')) return;
+      const box = document.createElement('div');
+      box.id = 'cameraGalleryChooser';
+      box.innerHTML = `
+        <div class="cgc-overlay">
+          <div class="cgc-card">
+            <div class="cgc-title">फोटो चुनें</div>
+            <button type="button" id="cgcCamera">📷 कैमरा से फोटो लें</button>
+            <button type="button" id="cgcGallery">🖼️ Gallery से चुनें</button>
+            <button type="button" id="cgcCancel">रद्द करें</button>
+          </div>
+        </div>`;
+      document.body.appendChild(box);
+
+      const style=document.createElement('style');
+      style.id='cameraGalleryChooserStyle';
+      style.textContent=`
+        #cameraGalleryChooser .cgc-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:flex-end;justify-content:center;padding:14px;z-index:99999}
+        #cameraGalleryChooser .cgc-card{width:min(420px,94vw);background:#fff;border-radius:18px;padding:14px;box-shadow:0 12px 35px rgba(0,0,0,.2)}
+        #cameraGalleryChooser .cgc-title{text-align:center;font-weight:800;font-size:17px;margin-bottom:9px;color:#145d76}
+        #cameraGalleryChooser button{width:100%;border:1px solid #dbe5ee;background:#f8fbfd;border-radius:12px;padding:11px 10px;margin:4px 0;font-weight:700;font-size:14px;color:#234}
+        #cameraGalleryChooser #cgcCancel{background:#fff}
+      `;
+      document.head.appendChild(style);
+
+      document.getElementById('cgcCamera').onclick=()=>{
+        box.style.display='none';
+        photoInput.setAttribute('accept','image/*');
+        photoInput.setAttribute('capture','environment');
+        photoInput.click();
+      };
+      document.getElementById('cgcGallery').onclick=()=>{
+        box.style.display='none';
+        photoInput.setAttribute('accept','image/*');
+        photoInput.removeAttribute('capture');
+        photoInput.click();
+      };
+      document.getElementById('cgcCancel').onclick=()=>box.style.display='none';
+    }
+    ensureCameraGalleryChooser();
+
   const photoStatus = document.getElementById('photoStatus');
 
 
