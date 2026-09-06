@@ -118,14 +118,26 @@ function showExplanationAfterAnswer() {
   btn.style.display = btn.dataset.explanation ? 'inline-flex' : 'none';
 }
 
+function ensureAnswerFeedbackStyle() {
+  if ($('gsAnswerLockStyle')) return;
+  const style = document.createElement('style');
+  style.id = 'gsAnswerLockStyle';
+  style.textContent = `
+    .option-btn.answer-correct{border-color:#16a56f!important;background:#e9f9f1!important;color:#08724d!important}
+    .option-btn.answer-wrong{border-color:#e05263!important;background:#fff0f2!important;color:#b42335!important}
+    .option-btn:disabled{cursor:default!important;opacity:1!important}
+    #answerFeedback{min-height:20px;margin:4px 2px 0;text-align:center;font-weight:700;font-size:13px}
+  `;
+  document.head.appendChild(style);
+}
+
 function renderQuestion() {
   const q = questions[currentIndex];
   if (!q) return;
 
+  ensureAnswerFeedbackStyle();
   setupQuestionHelp();
   refreshQuestionHelp(q);
-  const feedback = $('answerFeedback');
-  if (feedback) { feedback.textContent = ''; feedback.removeAttribute('style'); }
 
   $('questionNo').textContent = `प्रश्न ${currentIndex + 1} / ${questions.length}`;
   $('questionText').innerHTML =
@@ -173,13 +185,13 @@ function renderQuestion() {
 
   $('options').querySelectorAll('button').forEach(btn => {
     btn.onclick = () => {
-      // One final answer per question: once selected, all options lock.
-      if (answers[currentIndex] !== undefined && answers[currentIndex] !== null && answers[currentIndex] !== '') return;
+      // FINAL ANSWER LOCK: once an option is selected, this question cannot be changed.
+      if (answers[currentIndex] !== null && answers[currentIndex] !== undefined && answers[currentIndex] !== '') return;
 
       answers[currentIndex] = btn.dataset.option;
       showExplanationAfterAnswer();
 
-      const selected = btn.dataset.option;
+      const selected = String(btn.dataset.option || '').trim().toUpperCase();
       const correct = String(q.correct_option || '').trim().toUpperCase();
       const optionButtons = $('options').querySelectorAll('button');
 
@@ -190,15 +202,15 @@ function renderQuestion() {
 
         if (opt === correct) {
           x.classList.add('answer-correct');
-        } else if (opt === selected && selected.toUpperCase() !== correct) {
+        } else if (opt === selected && selected !== correct) {
           x.classList.add('answer-wrong');
         }
       });
 
       const feedback = $('answerFeedback');
       if (feedback) {
-        feedback.textContent = selected.toUpperCase() === correct ? '✓ सही उत्तर' : '✕ गलत उत्तर';
-        feedback.style.color = selected.toUpperCase() === correct ? '#08724d' : '#b42335';
+        feedback.textContent = selected === correct ? '✓ सही उत्तर' : '✕ गलत उत्तर';
+        feedback.style.color = selected === correct ? '#08724d' : '#b42335';
       }
       btn.classList.add('selected');
     };
