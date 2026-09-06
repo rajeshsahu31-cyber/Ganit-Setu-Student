@@ -116,12 +116,9 @@ function chapterNumber(row) {
   const direct = Number(row?.chapter_from ?? row?.chapter_number);
   if (Number.isFinite(direct) && direct > 0) return direct;
 
-  const text = String(row?.test_title || row?.title || '');
-  const m = text.match(/chapter\\s*(?:test\\s*)?(?:class\\s*9|class\\s*10)?\\s*chapter\\s*(\\d+)/i);
-  if (m) return Number(m[1]);
-
-  const range = text.match(/chapter\\s*(\\d+)\\s*-\\s*(\\d+)/i);
-  return range ? Number(range[1]) : 999999;
+  const text = String(row?.test_title || row?.title || row?.test_name || '');
+  const m = text.match(/chapter\s+(\d+)/i);
+  return m ? Number(m[1]) : 999999;
 }
 
 function renderChapterResults(rows) {
