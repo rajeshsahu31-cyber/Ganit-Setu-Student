@@ -46,31 +46,6 @@ async function loadQuestions(classLevel, chapterNumber = null) {
   return data || [];
 }
 
-function setupExplanation() {
-  const btn = $('explainButton'), hint = $('gsHintFlash');
-  const modal = $('explainModal'), body = $('explainBody'), close = $('explainClose');
-  if (!modal || !body || !close) return;
-  const open = (title, text) => {
-    if (!text) return;
-    const titleEl = modal.querySelector('.gs-explain-title span');
-    if (titleEl) titleEl.textContent = title;
-    body.textContent = text;
-    modal.classList.add('show');
-  };
-  if (btn && !btn.dataset.ready) {
-    btn.dataset.ready='1';
-    btn.addEventListener('click',()=>open('💡 Explanation',btn.dataset.explanation||''));
-  }
-  if (hint && !hint.dataset.ready) {
-    hint.dataset.ready='1';
-    hint.addEventListener('click',()=>open('💡 Hint',hint.dataset.hint||''));
-  }
-  if (!close.dataset.ready) {
-    close.dataset.ready='1';
-    close.addEventListener('click',()=>modal.classList.remove('show'));
-    modal.addEventListener('click',e=>{if(e.target===modal)modal.classList.remove('show')});
-  }
-}
 function startTimer() {
   const timer = $('timer');
   if (!timer) return;
@@ -84,28 +59,71 @@ function startTimer() {
   }, 1000);
 }
 
-function renderExplanationButton(q) {
-  const btn = $('explainButton');
-  const hintBtn = $('hintButton');
-  if (btn) {
-    btn.dataset.explanation = String(q?.explanation || '').trim();
-    btn.style.display = 'none'; // केवल उत्तर देने के बाद दिखेगा
+
+function setupQuestionHelp() {
+  const hintBtn = $('questionHint');
+  const explainBtn = $('questionExplanation');
+  const modal = $('helpModal');
+  const body = $('helpModalBody');
+  const title = $('helpModalTitle');
+  const close = $('helpModalClose');
+
+  if (!modal || !body || !close) return;
+
+  const openHelp = (heading, text) => {
+    if (!text) return;
+    if (title) title.textContent = heading;
+    body.textContent = text;
+    modal.classList.add('show');
+  };
+
+  if (hintBtn && !hintBtn.dataset.ready) {
+    hintBtn.dataset.ready = '1';
+    hintBtn.onclick = () => openHelp('💡 Hint', hintBtn.dataset.hint || '');
   }
+
+  if (explainBtn && !explainBtn.dataset.ready) {
+    explainBtn.dataset.ready = '1';
+    explainBtn.onclick = () => openHelp('💡 Explanation', explainBtn.dataset.explanation || '');
+  }
+
+  if (!close.dataset.ready) {
+    close.dataset.ready = '1';
+    close.onclick = () => modal.classList.remove('show');
+    modal.onclick = e => {
+      if (e.target === modal) modal.classList.remove('show');
+    };
+  }
+}
+
+function refreshQuestionHelp(q) {
+  const hintBtn = $('questionHint');
+  const explainBtn = $('questionExplanation');
+
   if (hintBtn) {
     hintBtn.dataset.hint = String(q?.hint || '').trim();
-    hintBtn.style.display = q?.hint ? 'block' : 'none'; // Hint पहले से उपलब्ध
+    hintBtn.style.display = hintBtn.dataset.hint ? 'inline-flex' : 'none';
+  }
+
+  if (explainBtn) {
+    explainBtn.dataset.explanation = String(q?.explanation || '').trim();
+    // Explanation is NEVER visible before an answer is entered/selected.
+    explainBtn.style.display = 'none';
   }
 }
 
 function showExplanationAfterAnswer() {
-  const btn = $('explainButton');
+  const btn = $('questionExplanation');
   if (!btn) return;
-  btn.style.display = btn.dataset.explanation ? 'block' : 'none';
+  btn.style.display = btn.dataset.explanation ? 'inline-flex' : 'none';
 }
+
 function renderQuestion() {
   const q = questions[currentIndex];
   if (!q) return;
-  renderExplanationButton(q);
+
+  setupQuestionHelp();
+  refreshQuestionHelp(q);
 
   $('questionNo').textContent = `प्रश्न ${currentIndex + 1} / ${questions.length}`;
   $('questionText').innerHTML =
@@ -611,6 +629,3 @@ document.addEventListener('DOMContentLoaded', () => {
   setupChapterTest();
   setupDailyTest();
 });
-
-
-document.addEventListener('DOMContentLoaded', setupExplanation);
