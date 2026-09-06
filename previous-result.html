@@ -355,24 +355,15 @@ async function openReview(index){
       return;
     }
 
-    // IMPORTANT: the date shown in Previous Result is the TEST/RESULT date.
-    // A student can submit the test after midnight, so submitted_at may belong
-    // to the next calendar day. Do NOT filter the attempt by the selected date.
-    // In this schema test_attempts is unique per (student_id, test_id), so the
-    // exact attempt is identified safely by student + test.
-    const {data:attempt,error:attemptError}=await db.from('test_attempts')
-      .select('id,test_id,status,submitted_at')
-      .eq('student_id',student.id)
-      .eq('test_id',testId)
-      .eq('status','submitted')
-      .not('submitted_at','is',null)
-      .maybeSingle();
-
-    if(attemptError) throw attemptError;
-    if(!attempt?.id){
-      qbox.innerHTML='<div class="empty">इस Test का submitted attempt नहीं मिला, इसलिए Review उपलब्ध नहीं है।</div>';
+    // Result RPC पहले से exact attempt_id देता है।
+    // Review में date से दोबारा attempt खोजने के बजाय उसी attempt को इस्तेमाल करें।
+    const attemptId=Number(r.attempt_id);
+    if(!Number.isFinite(attemptId) || attemptId<=0){
+      qbox.innerHTML='<div class="empty">इस Result का exact attempt ID उपलब्ध नहीं है, इसलिए Review उपलब्ध नहीं है।</div>';
       return;
     }
+
+    const attempt={id:attemptId,test_id:testId};
 
     const [tqRes,ansRes]=await Promise.all([
       db.from('test_questions')
