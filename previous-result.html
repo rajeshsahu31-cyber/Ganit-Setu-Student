@@ -14,9 +14,11 @@ body{margin:0;background:#f5f9ff;color:var(--text);font-family:Arial,"Noto Sans 
 .card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px;margin-top:14px;box-shadow:0 5px 18px rgba(20,60,100,.06)}
 .label{font-size:13px;font-weight:700;margin-bottom:8px;display:block}
 input[type=date],select{width:100%;box-sizing:border-box;padding:12px;border:1px solid #cbdbea;border-radius:11px;font-size:15px;background:#fff;color:var(--text)}
-.test-select{margin-bottom:4px}
 .date-row{display:grid;grid-template-columns:1fr 48px;gap:8px;position:relative}.date-row input[type=text]{width:100%;box-sizing:border-box;padding:12px;border:1px solid #cbdbea;border-radius:11px;font-size:18px;background:#fff;color:var(--text);letter-spacing:.5px}.date-row button{border:1px solid #cbdbea;background:#eef5ff;border-radius:11px;font-size:20px}.date-row input[type=date]{position:absolute;right:56px;top:0;width:1px;height:1px;opacity:0;pointer-events:none}
 .demo-note{background:var(--blue2);border:1px solid #cfe2fb;border-radius:12px;padding:12px;font-size:12px;line-height:1.55;color:#315a83}
+.test-select-wrap{margin-top:2px}
+#testSelect{width:100%;box-sizing:border-box;padding:14px 42px 14px 14px;border:1px solid #cbdbea;border-radius:13px;font-size:16px;background:#fff;color:var(--text)}
+#testSelect:disabled{opacity:.65}
 .attempt{border:1px solid var(--border);border-radius:13px;padding:13px;margin-top:10px}
 .attempt-top{display:flex;justify-content:space-between;gap:10px}.attempt-title{font-weight:800;font-size:15px}.score{font-weight:800;color:var(--blue);white-space:nowrap}
 .meta{font-size:12px;color:var(--muted);margin-top:5px}.review-btn{margin-top:10px;border:0;background:var(--blue);color:#fff;border-radius:9px;padding:9px 13px;font-weight:700}
@@ -43,8 +45,8 @@ input[type=date],select{width:100%;box-sizing:border-box;padding:12px;border:1px
 
 <section class="card">
 <label class="label" for="testSelect">📝 इस तारीख का Test चुनें</label>
-<select id="testSelect" class="test-select" disabled>
-<option value="">Test उपलब्ध होने पर यहाँ चुनें</option>
+<select id="testSelect" disabled>
+  <option value="">Test उपलब्ध होने पर यहाँ चुनें</option>
 </select>
 <div id="attempts"></div>
 </section>
@@ -120,26 +122,21 @@ function testLabel(t){
   const title=String(t?.title||'').trim();
   const low=title.toLowerCase();
   if(low.includes('daily') || title.includes('दैनिक') || title.includes('आज का')) return 'Daily Test';
-  if(low.includes('chapter') || title.includes('अध्याय')) return title || 'अध्याय टेस्ट';
-  if(low.includes('course') || title.includes('कोर्स') || title.includes('प्रगतिशील')) return title || 'कोर्स टेस्ट';
-  return title || 'टेस्ट';
-}
-
-function typeRank(t){
-  const x=String(t?.test_type||'').toLowerCase();
-  const title=String(t?.title||'').toLowerCase();
-  if(x==='course_progress'||x.includes('course')||title.includes('course')||title.includes('कोर्स')||title.includes('प्रगतिशील')) return 1;
-  if(x==='chapter_practice'||x.includes('chapter')||title.includes('chapter')||title.includes('अध्याय')) return 2;
-  if(x==='daily'||x.includes('daily')||x.includes('practice')||title.includes('daily')||title.includes('दैनिक')||title.includes('आज का')) return 3;
-  return 9;
-}
-function displayType(t){
-  const x=String(t?.test_type||'').toLowerCase(), title=String(t?.title||'').trim(), low=title.toLowerCase();
-  if(x==='daily'||x.includes('practice')||low.includes('daily')||title.includes('दैनिक')||title.includes('आज का')) return 'Practice Test';
-  if(x==='course_progress'||x.includes('course')||low.includes('course')||title.includes('कोर्स')||title.includes('प्रगतिशील')) return title || 'Course Test';
-  if(x==='chapter_practice'||x.includes('chapter')||low.includes('chapter')||title.includes('अध्याय')) return title || 'Chapter Test';
+  if(low.includes('chapter') || title.includes('अध्याय')) return title || 'Chapter Test';
+  if(low.includes('course') || title.includes('कोर्स') || title.includes('प्रगतिशील')) return title || 'Course Test';
+  if(low.includes('practice') || title.includes('प्रैक्टिस') || title.includes('प्रैक्टिस')) return title || 'Practice Test';
   return title || 'Test';
 }
+
+function testTypeRank(t){
+  const title=String(t?.title||'').toLowerCase();
+  if(title.includes('course') || title.includes('कोर्स') || title.includes('प्रगतिशील')) return 1;
+  if(title.includes('chapter') || title.includes('अध्याय')) return 2;
+  if(title.includes('practice') || title.includes('प्रैक्टिस')) return 3;
+  if(title.includes('daily') || title.includes('दैनिक') || title.includes('आज का')) return 4;
+  return 9;
+}
+
 let currentRows=[];
 
 function resetReview(){
@@ -163,37 +160,42 @@ async function getStudent(){
   return data;
 }
 
+/*
+ * IMPORTANT:
+ * Do not request tests.total_questions here.
+ * The working result logic calculates the total from test_questions,
+ * so this page remains compatible with the existing database schema.
+ * This also prevents a missing tests_1.total_questions column from
+ * breaking the entire date/test dropdown.
+ */
 async function loadAttempts(){
   const db=getDB();
   const iso=document.getElementById('date').value;
   const box=document.getElementById('attempts');
-  const sel=document.getElementById('testSelect');
-  resetReview();
-  currentRows=[];
-  sel.innerHTML='<option value="">Test उपलब्ध होने पर यहाँ चुनें</option>';
-  sel.disabled=true;
+  resetReview(); currentRows=[];
+  const testSelect=document.getElementById('testSelect');
+  testSelect.innerHTML='<option value="">Test लोड हो रहा है...</option>';
+  testSelect.disabled=true;
   if(!iso){box.innerHTML='<div class="empty">कृपया तारीख चुनें।</div>';return;}
   if(!db){box.innerHTML='<div class="empty" style="color:#a33">❌ Supabase connection उपलब्ध नहीं है।</div>';return;}
   box.innerHTML='<div class="empty">☁️ Supabase से परिणाम लोड हो रहा है...</div>';
+
   try{
     const student=await getStudent();
     const from=`${iso}T00:00:00+05:30`, to=`${nextDate(iso)}T00:00:00+05:30`;
-
-    // यही वही working query है जो dropdown से पहले वाले version में result ला रही थी।
     const {data,error}=await db.from('test_attempts')
-      .select('id,status,submitted_at,test_id,tests(id,title,test_type,class_level,chapter_from,chapter_to,total_questions,total_marks)')
+      .select('id,status,submitted_at,test_id,tests(id,title,class_level,chapter_from,chapter_to)')
       .eq('student_id',student.id)
       .eq('status','submitted')
-      .gte('submitted_at',from)
-      .lt('submitted_at',to)
+      .gte('submitted_at',from).lt('submitted_at',to)
       .order('submitted_at',{ascending:false});
     if(error) throw error;
 
     const rows=(data||[]).filter(r=>r.tests && Number(String(r.tests.class_level||'').match(/9|10/)?.[0]||0)===Number(String(student.class_level||'').match(/9|10/)?.[0]||0));
-    if(!rows.length){
-      box.innerHTML=`<div class="empty">${formatDMY(iso)} को कोई test record नहीं मिला।</div>`;
-      return;
-    }
+    const select=document.getElementById('testSelect');
+    select.innerHTML='<option value="">Test उपलब्ध नहीं है</option>';
+    select.disabled=true;
+    if(!rows.length){box.innerHTML=`<div class="empty">${formatDMY(iso)} को कोई test record नहीं मिला।</div>`;return;}
 
     const enriched=await Promise.all(rows.map(async r=>{
       const [qRes,aRes]=await Promise.all([
@@ -202,7 +204,7 @@ async function loadAttempts(){
       ]);
       if(qRes.error) throw qRes.error;
       if(aRes.error) throw aRes.error;
-      const total=(qRes.data||[]).length || Number(r.tests.total_questions)||0;
+      const total=(qRes.data||[]).length;
       const answers=aRes.data||[];
       const correct=answers.filter(x=>x.is_correct===true).length;
       const wrong=answers.filter(x=>x.is_correct===false).length;
@@ -210,40 +212,44 @@ async function loadAttempts(){
       return {...r,_total:total,_correct:correct,_wrong:wrong,_unattempted:unattempted,_score:correct,_percentage:total?(correct/total)*100:0};
     }));
 
-    // हमेशा Course → Chapter → Practice क्रम। समान क्रम में dropdown बनेगा।
     enriched.sort((a,b)=>{
-      const tr=typeRank(a.tests)-typeRank(b.tests);
-      if(tr!==0) return tr;
-      return new Date(a.submitted_at)-new Date(b.submitted_at);
+      const rankDiff=testTypeRank(a.tests)-testTypeRank(b.tests);
+      if(rankDiff!==0) return rankDiff;
+      const at=String(a.tests?.title||'');
+      const bt=String(b.tests?.title||'');
+      return at.localeCompare(bt,'hi');
     });
+
     currentRows=enriched;
 
-    enriched.forEach((r,i)=>{
-      const op=document.createElement('option');
-      op.value=String(i);
-      op.textContent=`${displayType(r.tests)}${r.tests.title && displayType(r.tests)!==r.tests.title ? ' — '+r.tests.title : ''}`;
-      sel.appendChild(op);
-    });
-    sel.disabled=false;
-    sel.value='0';
-    renderSelected(0);
+    const select=document.getElementById('testSelect');
+    select.innerHTML='<option value="">Test चुनें</option>'+
+      enriched.map((r,i)=>`<option value="${i}">${esc(testLabel(r.tests))}</option>`).join('');
+    select.disabled=false;
+
+    function renderSelectedAttempt(index){
+      if(index==='' || index==null){
+        box.innerHTML='<div class="empty">ऊपर से Test चुनें।</div>';
+        resetReview();
+        return;
+      }
+      const r=currentRows[Number(index)];
+      if(!r){box.innerHTML='<div class="empty">Test record उपलब्ध नहीं है।</div>';return;}
+      box.innerHTML=`<div class="attempt">
+        <div class="attempt-top"><div class="attempt-title">${esc(testLabel(r.tests))}</div><div class="score">${r._score}/${r._total}</div></div>
+        <div class="meta">सही ${r._correct} • गलत ${r._wrong} • छोड़े ${r._unattempted} • ${r._percentage.toFixed(1)}%${r.submitted_at?' • '+esc(new Date(r.submitted_at).toLocaleTimeString('hi-IN',{hour:'2-digit',minute:'2-digit'})):''}</div>
+        <button class="review-btn" onclick="openReview(${Number(index)})">प्रश्नपत्र Review करें</button>
+      </div>`;
+      resetReview();
+    }
+
+    select.onchange=()=>renderSelectedAttempt(select.value);
+    select.value='0';
+    renderSelectedAttempt('0');
   }catch(err){
     console.error('Previous Result Supabase Error:',err);
     box.innerHTML=`<div class="empty" style="color:#a33">❌ Result load नहीं हो सका।<br><small>${esc(err.message||err)}</small></div>`;
   }
-}
-function renderSelected(index){
-  const box=document.getElementById('attempts');
-  resetReview();
-  if(index==='' || index===null || index===undefined || !currentRows[index]){
-    box.innerHTML='<div class="empty">ऊपर से Test चुनें।</div>';return;
-  }
-  const r=currentRows[index];
-  box.innerHTML=`<div class="attempt">
-    <div class="attempt-top"><div class="attempt-title">${esc(displayType(r.tests))}</div><div class="score">${r._score}/${r._total}</div></div>
-    <div class="meta">सही ${r._correct} • गलत ${r._wrong} • छोड़े ${r._unattempted} • ${r._percentage.toFixed(1)}%${r.submitted_at?' • '+esc(new Date(r.submitted_at).toLocaleTimeString('hi-IN',{hour:'2-digit',minute:'2-digit'})):''}</div>
-    <button class="review-btn" onclick="openReview(${index})">प्रश्नपत्र Review करें</button>
-  </div>`;
 }
 
 async function openReview(index){
@@ -255,7 +261,7 @@ async function openReview(index){
     const student=await getStudent();
     const [tqRes,ansRes]=await Promise.all([
       db.from('test_questions').select('question_id,question_order,marks').eq('test_id',r.test_id).order('question_order',{ascending:true}),
-      db.from('student_answers').select('question_id,selected_option,is_correct').eq('student_id',student.id).eq('test_id',r.test_id)
+      db.from('student_answers').select('question_id,selected_option,is_correct,time_taken_seconds').eq('student_id',student.id).eq('test_id',r.test_id)
     ]);
     if(tqRes.error) throw tqRes.error; if(ansRes.error) throw ansRes.error;
     const tq=tqRes.data||[], answers=new Map((ansRes.data||[]).map(a=>[String(a.question_id),a])), ids=tq.map(x=>x.question_id);
@@ -266,7 +272,7 @@ async function openReview(index){
       const byId=new Map((qRes.data||[]).map(q=>[String(q.id),q]));
       questions=tq.map(x=>byId.get(String(x.question_id))).filter(Boolean);
     }
-    document.getElementById('reviewMeta').innerHTML=`<b>${esc(displayType(r.tests))}</b><br>तारीख: ${formatDMY(document.getElementById('date').value)} &nbsp; | &nbsp; अंक: <b>${r._score}/${r._total}</b> &nbsp; | &nbsp; सही: ${r._correct} • गलत: ${r._wrong} • छोड़े: ${r._unattempted}`;
+    document.getElementById('reviewMeta').innerHTML=`<b>${esc(testLabel(r.tests))}</b><br>तारीख: ${formatDMY(document.getElementById('date').value)} &nbsp; | &nbsp; अंक: <b>${r._score}/${r._total}</b> &nbsp; | &nbsp; सही: ${r._correct} • गलत: ${r._wrong} • छोड़े: ${r._unattempted}`;
     if(!questions.length){qbox.innerHTML='<div class="empty">इस attempt का प्रश्नपत्र उपलब्ध नहीं है।</div>';return;}
     qbox.innerHTML=questions.map((q,i)=>{
       const a=answers.get(String(q.id)), selected=a?.selected_option, isCorrect=a?.is_correct===true;
@@ -281,7 +287,7 @@ async function openReview(index){
   }
 }
 
-const dateInput=document.getElementById('date'), dateDisplay=document.getElementById('dateDisplay'), datePick=document.getElementById('datePick'), testSelect=document.getElementById('testSelect');
+const dateInput=document.getElementById('date'), dateDisplay=document.getElementById('dateDisplay'), datePick=document.getElementById('datePick');
 function syncDisplay(){dateDisplay.value=formatDMY(dateInput.value);}
 dateDisplay.addEventListener('input',()=>{
   let v=dateDisplay.value.replace(/\D/g,'').slice(0,8);
@@ -293,7 +299,6 @@ dateDisplay.addEventListener('input',()=>{
 dateDisplay.addEventListener('blur',()=>{if(dateDisplay.value&&!parseDMY(dateDisplay.value)) syncDisplay();});
 datePick.addEventListener('click',()=>{try{dateInput.showPicker();}catch(e){dateInput.click();}});
 dateInput.addEventListener('change',()=>{syncDisplay();loadAttempts();});
-testSelect.addEventListener('change',()=>renderSelected(testSelect.value));
 dateInput.value=indiaToday(); syncDisplay(); loadAttempts();
 </script>
 </body>
