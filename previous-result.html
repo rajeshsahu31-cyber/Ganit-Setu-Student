@@ -13,74 +13,235 @@ body{margin:0;background:#f5f9ff;color:var(--text);font-family:Arial,"Noto Sans 
 .pr-head h1{font-size:22px;margin:0 0 6px}.pr-head p{margin:0;font-size:13px;opacity:.94}
 .card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px;margin-top:14px;box-shadow:0 5px 18px rgba(20,60,100,.06)}
 .label{font-size:13px;font-weight:700;margin-bottom:8px;display:block}
-select{width:100%;box-sizing:border-box;padding:14px 42px 14px 14px;border:1px solid #cbdbea;border-radius:13px;font-size:16px;background:#fff;color:var(--text)}
-select:disabled{opacity:.65}
-.date-row{display:grid;grid-template-columns:1fr 48px;gap:8px;position:relative}
-.date-row input[type=text]{width:100%;box-sizing:border-box;padding:12px;border:1px solid #cbdbea;border-radius:11px;font-size:18px;background:#fff;color:var(--text);letter-spacing:.5px}
-.date-row button{border:1px solid #cbdbea;background:#eef5ff;border-radius:11px;font-size:20px;cursor:pointer}
-.date-row input[type=date]{position:absolute;right:56px;top:0;width:1px;height:1px;opacity:0;pointer-events:none}
+input[type=date],select{width:100%;box-sizing:border-box;padding:12px;border:1px solid #cbdbea;border-radius:11px;font-size:15px;background:#fff;color:var(--text)}
+.date-row{display:grid;grid-template-columns:1fr 48px;gap:8px;position:relative}.date-row input[type=text]{width:100%;box-sizing:border-box;padding:12px;border:1px solid #cbdbea;border-radius:11px;font-size:18px;background:#fff;color:var(--text);letter-spacing:.5px}.date-row button{border:1px solid #cbdbea;background:#eef5ff;border-radius:11px;font-size:20px}.date-row input[type=date]{position:absolute;right:56px;top:0;width:1px;height:1px;opacity:0;pointer-events:none}
 .demo-note{background:var(--blue2);border:1px solid #cfe2fb;border-radius:12px;padding:12px;font-size:12px;line-height:1.55;color:#315a83}
 .attempt{border:1px solid var(--border);border-radius:13px;padding:13px;margin-top:10px}
 .attempt-top{display:flex;justify-content:space-between;gap:10px}.attempt-title{font-weight:800;font-size:15px}.score{font-weight:800;color:var(--blue);white-space:nowrap}
-.meta{font-size:12px;color:var(--muted);margin-top:5px}.review-btn{margin-top:10px;border:0;background:var(--blue);color:#fff;border-radius:9px;padding:9px 13px;font-weight:700;cursor:pointer}
+.meta{font-size:12px;color:var(--muted);margin-top:5px}.review-btn{margin-top:10px;border:0;background:var(--blue);color:#fff;border-radius:9px;padding:9px 13px;font-weight:700}
 .review{display:none}.review.show{display:block}.q{border:1px solid var(--border);border-radius:13px;padding:13px;margin-top:10px}.qno{font-size:12px;color:var(--blue);font-weight:800}.qtext{font-weight:700;margin:6px 0 10px;line-height:1.5}.ans{font-size:12px;padding:8px;border-radius:8px;margin-top:6px}.wrong{background:#fff1f1;color:#a33}.correct{background:#edf9f0;color:#24743a}
 .empty{text-align:center;color:var(--muted);padding:18px;font-size:13px}
 .bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:999;background:#fff;border-top:1px solid #dce7f2;box-shadow:0 -5px 18px rgba(20,60,100,.08);padding:7px 8px calc(7px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
-.bottom-nav a{text-decoration:none;color:#647487;text-align:center;font-size:11px;font-weight:700;padding:5px 2px;border-radius:11px;min-width:0}.bottom-nav a span{display:block;font-size:21px;line-height:23px;margin-bottom:2px}.bottom-nav a.active{color:var(--blue);background:#eef5ff}
+.bottom-nav a{text-decoration:none;color:#647487;text-align:center;font-size:11px;font-weight:700;padding:5px 2px;border-radius:11px;min-width:0}
+.bottom-nav a span{display:block;font-size:21px;line-height:23px;margin-bottom:2px}.bottom-nav a.active{color:var(--blue);background:#eef5ff}
 @media(max-width:380px){.pr-wrap{padding:12px}.pr-head h1{font-size:20px}.bottom-nav a{font-size:10px}.bottom-nav a span{font-size:19px}}
 </style>
 </head>
 <body>
 <main class="pr-wrap">
-<section class="pr-head"><h1>📋 पिछला परिणाम जानें</h1><p>अपनी पुरानी परीक्षा का रिकॉर्ड तारीख के अनुसार देखें</p></section>
+<section class="pr-head">
+<h1>📋 पिछला परिणाम जानें</h1>
+<p>अपनी पुरानी परीक्षा का रिकॉर्ड तारीख के अनुसार देखें</p>
+</section>
+
 <section class="card">
 <label class="label" for="date">📅 तारीख चुनें</label>
 <div class="date-row"><input id="dateDisplay" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" autocomplete="off"><button type="button" id="datePick" aria-label="तारीख चुनें">📅</button><input id="date" type="date" aria-hidden="true" tabindex="-1"></div>
-<div class="demo-note" style="margin-top:10px">एक समय में केवल चुनी हुई तारीख का वास्तविक रिकॉर्ड दिखेगा। पुराने attempts database में सुरक्षित रहेंगे।</div>
+<div class="demo-note" style="margin-top:10px">एक समय में केवल चुनी हुई तारीख का रिकॉर्ड दिखेगा। सभी पुराने attempts database में सुरक्षित रहेंगे।</div>
 </section>
+
 <section class="card">
-<label class="label" for="testSelect">📝 इस तारीख का Test चुनें</label>
-<select id="testSelect" disabled><option value="">Test उपलब्ध होने पर यहाँ चुनें</option></select>
+<label class="label">📝 इस तारीख के Test</label>
 <div id="attempts"></div>
 </section>
-<section id="review" class="card review"><label class="label">🔎 प्रश्नपत्र Review</label><div id="reviewMeta" class="demo-note"></div><div id="questions"></div></section>
+
+<section id="review" class="card review">
+<label class="label">🔎 प्रश्नपत्र Review</label>
+<div id="reviewMeta" class="demo-note"></div>
+<div id="questions"></div>
+</section>
 </main>
-<nav class="bottom-nav"><a href="home.html"><span>🏠</span>होम</a><a href="leaderboard.html"><span>🏆</span>रैंकिंग</a><a href="pragati.html"><span>📈</span>प्रगति</a><a href="profile.html"><span>👤</span>प्रोफाइल</a></nav>
+
+<nav class="bottom-nav">
+<a href="home.html"><span>🏠</span>होम</a>
+<a href="leaderboard.html"><span>🏆</span>रैंकिंग</a>
+<a href="pragati.html"><span>📈</span>प्रगति</a>
+<a href="profile.html"><span>👤</span>प्रोफाइल</a>
+</nav>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/js/supabase.js"></script>
 <script>
 'use strict';
-const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
-function getDB(){if(window.supabaseClient)return window.supabaseClient;if(typeof supabaseClient!=='undefined')return supabaseClient;return null;}
-function readSession(keys){for(const store of [sessionStorage,localStorage])for(const key of keys){try{const v=String(store.getItem(key)||'').trim();if(v)return v;}catch(e){}}return '';}
-function studentCode(){return readSession(['ganit_setu_student_id','studentId','studentCode','student_id']);}
-function indiaToday(){const p=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date()),o={};p.forEach(x=>o[x.type]=x.value);return `${o.year}-${o.month}-${o.day}`;}
-function nextDate(iso){const [y,m,d]=iso.split('-').map(Number),dt=new Date(Date.UTC(y,m-1,d));dt.setUTCDate(dt.getUTCDate()+1);return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth()+1).padStart(2,'0')}-${String(dt.getUTCDate()).padStart(2,'0')}`;}
-function formatDMY(iso){if(!iso)return '—';const [y,m,d]=iso.split('-');return `${d}/${m}/${y}`;}
-function parseDMY(v){const m=String(v||'').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(!m)return '';const d=Number(m[1]),mo=Number(m[2]),y=Number(m[3]),dt=new Date(Date.UTC(y,mo-1,d));if(dt.getUTCFullYear()!==y||dt.getUTCMonth()!==mo-1||dt.getUTCDate()!==d)return '';return `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
-function indiaDateOf(v){if(!v)return '';const p=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date(v)),o={};p.forEach(x=>o[x.type]=x.value);return `${o.year}-${o.month}-${o.day}`;}
-function normalizeClass(v){const s=String(v??'');if(/10/.test(s))return 10;if(/9/.test(s))return 9;return 0;}
-function testLabel(r){const type=String(r?.test_type||'').toLowerCase(),title=String(r?.test_title||r?.title||'').trim();if(type==='daily')return 'Practice Test';if(type==='chapter_practice')return title||'Chapter Test';if(type==='course_progress')return title||'Course Test';if(title.toLowerCase().includes('daily'))return 'Practice Test';return title||'Test';}
-function resetReview(){document.getElementById('review').classList.remove('show');document.getElementById('questions').innerHTML='';document.getElementById('reviewMeta').innerHTML='';}
+
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+
+/* Existing Ganit Setu connection is used first.
+   Supports both versions of supabase.js:
+   1) window.supabaseClient
+   2) global const supabaseClient
+*/
+function getDB(){
+  if(window.supabaseClient) return window.supabaseClient;
+  if(typeof supabaseClient !== 'undefined') return supabaseClient;
+  return null;
+}
+
+function studentCode(){
+  return sessionStorage.getItem('ganit_setu_student_id') ||
+         localStorage.getItem('studentCode') ||
+         localStorage.getItem('studentId') ||
+         localStorage.getItem('student_id') || '';
+}
+
+function indiaToday(){
+  const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Kolkata',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(new Date());
+  const o={}; parts.forEach(x=>o[x.type]=x.value);
+  return `${o.year}-${o.month}-${o.day}`;
+}
+
+function nextDate(iso){
+  const [y,m,d]=iso.split('-').map(Number);
+  const dt=new Date(Date.UTC(y,m-1,d));
+  dt.setUTCDate(dt.getUTCDate()+1);
+  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth()+1).padStart(2,'0')}-${String(dt.getUTCDate()).padStart(2,'0')}`;
+}
+
+function formatDMY(iso){
+  if(!iso) return '—';
+  const [y,m,d]=iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function parseDMY(v){
+  const m=String(v||'').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(!m) return '';
+  const d=Number(m[1]), mo=Number(m[2]), y=Number(m[3]);
+  const dt=new Date(Date.UTC(y,mo-1,d));
+  if(dt.getUTCFullYear()!==y || dt.getUTCMonth()!==mo-1 || dt.getUTCDate()!==d) return '';
+  return `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+
+function testLabel(t){
+  const title=String(t?.title||'').trim();
+  const low=title.toLowerCase();
+  if(low.includes('daily') || title.includes('दैनिक') || title.includes('आज का')) return 'Daily Test';
+  if(low.includes('chapter') || title.includes('अध्याय')) return title || 'अध्याय टेस्ट';
+  if(low.includes('course') || title.includes('कोर्स') || title.includes('प्रगतिशील')) return title || 'कोर्स टेस्ट';
+  return title || 'टेस्ट';
+}
+
 let currentRows=[];
-async function getStudent(){const db=getDB();if(!db)throw new Error('Supabase connection उपलब्ध नहीं है।');const code=studentCode();if(!code)throw new Error('कृपया पहले Student Login करें।');const {data,error}=await db.from('students').select('id,student_id,full_name,class_level').eq('student_id',code).maybeSingle();if(error)throw error;if(!data?.id)throw new Error('विद्यार्थी का database record नहीं मिला।');return data;}
-function normalizeRpcRow(r){return {...r,test_id:r.test_id||r.test_uuid||r.id_test||null,test_title:r.test_title||r.title||'',test_type:r.test_type||'',class_level:r.class_level,submitted_at:r.submitted_at||r.created_at||r.test_time||null,score:Number(r.score??r.correct_answers??0),total_marks:Number(r.total_marks??r.total_questions??0),correct_answers:Number(r.correct_answers??r.score??0),percentage:Number(r.percentage??0),time_taken_seconds:Number(r.time_taken_seconds??0)};}
-async function loadFromResultsRPC(db,iso,student){const {data,error}=await db.rpc('get_ganit_student_results',{p_student_code:studentCode()});if(error)throw error;const cls=normalizeClass(student.class_level);return(Array.isArray(data)?data:[]).map(normalizeRpcRow).filter(r=>normalizeClass(r.class_level)===cls).filter(r=>indiaDateOf(r.submitted_at)===iso).sort((a,b)=>new Date(b.submitted_at||0)-new Date(a.submitted_at||0));}
-async function loadFromAttemptTables(db,iso,student){const from=`${iso}T00:00:00+05:30`,to=`${nextDate(iso)}T00:00:00+05:30`;const {data:attempts,error}=await db.from('test_attempts').select('id,test_id,status,submitted_at').eq('student_id',student.id).not('submitted_at','is',null).gte('submitted_at',from).lt('submitted_at',to).order('submitted_at',{ascending:false});if(error)throw error;if(!attempts?.length)return [];const ids=[...new Set(attempts.map(a=>a.test_id).filter(Boolean))];if(!ids.length)return [];const {data:tests,error:testError}=await db.from('tests').select('id,title,test_type,class_level,chapter_from,chapter_to').in('id',ids);if(testError)throw testError;const byId=new Map((tests||[]).map(t=>[String(t.id),t]));const out=[];for(const a of attempts){const t=byId.get(String(a.test_id));if(!t||normalizeClass(t.class_level)!==normalizeClass(student.class_level))continue;const [qRes,aRes]=await Promise.all([db.from('test_questions').select('question_id').eq('test_id',a.test_id),db.from('student_answers').select('question_id,is_correct').eq('student_id',student.id).eq('test_id',a.test_id)]);if(qRes.error)throw qRes.error;if(aRes.error)throw aRes.error;const total=(qRes.data||[]).length,ans=aRes.data||[],correct=ans.filter(x=>x.is_correct===true).length;out.push(normalizeRpcRow({test_id:a.test_id,test_title:t.title,test_type:t.test_type,class_level:t.class_level,submitted_at:a.submitted_at,score:correct,correct_answers:correct,total_marks:total,percentage:total?correct/total*100:0}));}return out;}
-async function loadFromLegacyTable(db,iso,student){try{const {data,error}=await db.from('student_test_records').select('id,student_id,student_name,class_name,total_questions,correct_answers,percentage,time_taken,test_date,test_time,created_at,test_type,chapter').eq('student_id',student.student_id).eq('test_date',iso).order('created_at',{ascending:false});if(error)return [];return(data||[]).map(r=>normalizeRpcRow({...r,test_title:r.test_type||'Test',class_level:r.class_name,submitted_at:r.created_at||`${r.test_date}T${r.test_time||'00:00:00'}`,total_marks:r.total_questions,score:r.correct_answers}));}catch(e){return [];}}
-function renderAttempts(rows){const box=document.getElementById('attempts'),sel=document.getElementById('testSelect');if(!rows.length){sel.innerHTML='<option value="">इस तारीख को कोई Test नहीं मिला</option>';sel.disabled=true;box.innerHTML=`<div class="empty">${formatDMY(document.getElementById('date').value)} को कोई test record नहीं मिला।</div>`;return;}currentRows=rows;sel.innerHTML='<option value="">Test चुनें</option>'+rows.map((r,i)=>{const time=r.submitted_at?new Intl.DateTimeFormat('hi-IN',{hour:'2-digit',minute:'2-digit'}).format(new Date(r.submitted_at)):'';return `<option value="${i}">${esc(testLabel(r))}${time?' • '+esc(time):''}</option>`;}).join('');sel.disabled=false;sel.value='0';renderSelectedAttempt(0);}
-function renderSelectedAttempt(index){const box=document.getElementById('attempts');if(index===''||index==null){box.innerHTML='<div class="empty">ऊपर से Test चुनें।</div>';resetReview();return;}const r=currentRows[Number(index)];if(!r){box.innerHTML='<div class="empty">Test record उपलब्ध नहीं है।</div>';return;}const total=Number(r.total_marks||r.total_questions||0),score=Number(r.score??r.correct_answers??0),pct=Number(r.percentage||(total?score/total*100:0));box.innerHTML=`<div class="attempt"><div class="attempt-top"><div class="attempt-title">${esc(testLabel(r))}</div><div class="score">${score}/${total}</div></div><div class="meta">सही ${score} • ${pct.toFixed(1)}%${r.time_taken_seconds?' • '+Math.floor(r.time_taken_seconds/60)+':'+String(r.time_taken_seconds%60).padStart(2,'0'):''}${r.submitted_at?' • '+esc(new Intl.DateTimeFormat('hi-IN',{hour:'2-digit',minute:'2-digit'}).format(new Date(r.submitted_at))):''}</div><button class="review-btn" onclick="openReview(${Number(index)})">प्रश्नपत्र Review करें</button></div>`;resetReview();}
-async function loadAttempts(){const db=getDB(),iso=document.getElementById('date').value,box=document.getElementById('attempts'),sel=document.getElementById('testSelect');resetReview();currentRows=[];sel.innerHTML='<option value="">Test लोड हो रहा है...</option>';sel.disabled=true;if(!iso){box.innerHTML='<div class="empty">कृपया तारीख चुनें।</div>';return;}if(!db){box.innerHTML='<div class="empty" style="color:#a33">❌ Supabase connection उपलब्ध नहीं है।</div>';return;}box.innerHTML='<div class="empty">☁️ परिणाम लोड हो रहा है...</div>';try{const student=await getStudent();let rows=[];try{rows=await loadFromResultsRPC(db,iso,student);}catch(e){console.warn('Results RPC unavailable:',e);}if(!rows.length){try{rows=await loadFromAttemptTables(db,iso,student);}catch(e){console.warn('Attempt table fallback unavailable:',e);}}if(!rows.length){rows=await loadFromLegacyTable(db,iso,student);}renderAttempts(rows);}catch(err){console.error('Previous Result Error:',err);box.innerHTML=`<div class="empty" style="color:#a33">❌ Result load नहीं हो सका।<br><small>${esc(err.message||err)}</small></div>`;sel.innerHTML='<option value="">Test उपलब्ध नहीं है</option>';sel.disabled=true;}}
-async function resolveTestId(db,r,student){if(r.test_id)return r.test_id;const title=String(r.test_title||r.title||'').trim(),cls=normalizeClass(r.class_level||student.class_level);if(!title)return null;const {data,error}=await db.from('tests').select('id,title,test_type,class_level,chapter_from,chapter_to').eq('class_level',cls).eq('test_date',document.getElementById('date').value).limit(20);if(error||!data?.length)return null;const exact=data.find(t=>String(t.title)===title);if(exact)return exact.id;const sameType=r.test_type?data.find(t=>String(t.test_type)===String(r.test_type)):null;return sameType?.id||data[0]?.id||null;}
-async function openReview(index){const db=getDB(),r=currentRows[index];if(!r)return;const review=document.getElementById('review'),qbox=document.getElementById('questions');qbox.innerHTML='<div class="empty">☁️ प्रश्नपत्र लोड हो रहा है...</div>';review.classList.add('show');review.scrollIntoView({behavior:'smooth',block:'start'});try{const student=await getStudent(),testId=await resolveTestId(db,r,student);if(!testId){document.getElementById('reviewMeta').innerHTML=`<b>${esc(testLabel(r))}</b><br>तारीख: ${formatDMY(document.getElementById('date').value)} &nbsp; | &nbsp; अंक: <b>${Number(r.score??r.correct_answers??0)}/${Number(r.total_marks??r.total_questions??0)}</b>`;qbox.innerHTML='<div class="empty">इस Result का test ID नहीं मिला, इसलिए प्रश्नपत्र Review उपलब्ध नहीं है।</div>';return;}const [tqRes,ansRes]=await Promise.all([db.from('test_questions').select('question_id,question_order,marks').eq('test_id',testId).order('question_order',{ascending:true}),db.from('student_answers').select('question_id,selected_option,is_correct').eq('student_id',student.id).eq('test_id',testId)]);if(tqRes.error)throw tqRes.error;if(ansRes.error)throw ansRes.error;const tq=tqRes.data||[],answers=new Map((ansRes.data||[]).map(a=>[String(a.question_id),a])),ids=tq.map(x=>x.question_id);let questions=[];if(ids.length){const qRes=await db.from('questions').select('id,question_text,option_a,option_b,option_c,option_d,correct_option,chapter_number,chapter_name').in('id',ids);if(qRes.error)throw qRes.error;const byId=new Map((qRes.data||[]).map(q=>[String(q.id),q]));questions=tq.map(x=>byId.get(String(x.question_id))).filter(Boolean);}const total=Number(r.total_marks||r.total_questions||tq.length||0),score=Number(r.score??r.correct_answers??0);document.getElementById('reviewMeta').innerHTML=`<b>${esc(testLabel(r))}</b><br>तारीख: ${formatDMY(document.getElementById('date').value)} &nbsp; | &nbsp; अंक: <b>${score}/${total}</b>`;if(!questions.length){qbox.innerHTML='<div class="empty">इस attempt का प्रश्नपत्र उपलब्ध नहीं है।</div>';return;}qbox.innerHTML=questions.map((q,i)=>{const a=answers.get(String(q.id)),selected=a?.selected_option,attempted=selected!==null&&selected!==undefined&&String(selected).trim()!=='',isCorrect=a?.is_correct===true,your=attempted?selected:'उत्तर नहीं दिया',options=[['A',q.option_a],['B',q.option_b],['C',q.option_c],['D',q.option_d]].filter(x=>x[1]!=null&&String(x[1]).trim()!=='');return `<div class="q"><div class="qno">प्रश्न ${i+1}${q.chapter_name?' • '+esc(q.chapter_name):''}</div><div class="qtext">${esc(q.question_text)}</div>${options.length?`<div class="meta" style="margin:6px 0">${options.map(x=>`<div><b>${x[0]}.</b> ${esc(x[1])}</div>`).join('')}</div>`:''}<div class="ans ${isCorrect?'correct':'wrong'}">आपका उत्तर: ${isCorrect?'✅':'❌'} ${esc(your)} — ${isCorrect?'सही':'गलत / छोड़ा गया'}</div><div class="ans correct">सही उत्तर: ✅ ${esc(q.correct_option)}</div></div>`;}).join('');}catch(err){console.error('Review Error:',err);qbox.innerHTML=`<div class="empty" style="color:#a33">❌ प्रश्नपत्र Review नहीं हो सका।<br><small>${esc(err.message||err)}</small></div>`;}}
-const dateInput=document.getElementById('date'),dateDisplay=document.getElementById('dateDisplay'),datePick=document.getElementById('datePick'),testSelect=document.getElementById('testSelect');
+
+function resetReview(){
+  document.getElementById('review').classList.remove('show');
+  document.getElementById('questions').innerHTML='';
+  document.getElementById('reviewMeta').innerHTML='';
+}
+
+async function getStudent(){
+  const db=getDB();
+  if(!db) throw new Error('Supabase connection उपलब्ध नहीं है।');
+  const code=studentCode();
+  if(!code) throw new Error('कृपया पहले Student Login करें।');
+
+  const {data,error}=await db.from('students')
+    .select('id,student_id,class_level,full_name')
+    .eq('student_id',code)
+    .maybeSingle();
+  if(error) throw error;
+  if(!data?.id) throw new Error('विद्यार्थी का database record नहीं मिला।');
+  return data;
+}
+
+async function loadAttempts(){
+  const db=getDB();
+  const iso=document.getElementById('date').value;
+  const box=document.getElementById('attempts');
+  resetReview(); currentRows=[];
+  if(!iso){box.innerHTML='<div class="empty">कृपया तारीख चुनें।</div>';return;}
+  if(!db){box.innerHTML='<div class="empty" style="color:#a33">❌ Supabase connection उपलब्ध नहीं है।</div>';return;}
+  box.innerHTML='<div class="empty">☁️ Supabase से परिणाम लोड हो रहा है...</div>';
+
+  try{
+    const student=await getStudent();
+    const from=`${iso}T00:00:00+05:30`, to=`${nextDate(iso)}T00:00:00+05:30`;
+    const {data,error}=await db.from('test_attempts')
+      .select('id,status,submitted_at,test_id,tests(id,title,class_level,chapter_from,chapter_to)')
+      .eq('student_id',student.id)
+      .eq('status','submitted')
+      .gte('submitted_at',from).lt('submitted_at',to)
+      .order('submitted_at',{ascending:false});
+    if(error) throw error;
+
+    const rows=(data||[]).filter(r=>r.tests && Number(String(r.tests.class_level||'').match(/9|10/)?.[0]||0)===Number(String(student.class_level||'').match(/9|10/)?.[0]||0));
+    if(!rows.length){box.innerHTML=`<div class="empty">${formatDMY(iso)} को कोई test record नहीं मिला।</div>`;return;}
+
+    const enriched=await Promise.all(rows.map(async r=>{
+      const [qRes,aRes]=await Promise.all([
+        db.from('test_questions').select('question_id,question_order').eq('test_id',r.test_id).order('question_order',{ascending:true}),
+        db.from('student_answers').select('question_id,is_correct').eq('student_id',student.id).eq('test_id',r.test_id)
+      ]);
+      if(qRes.error) throw qRes.error;
+      if(aRes.error) throw aRes.error;
+      const total=(qRes.data||[]).length;
+      const answers=aRes.data||[];
+      const correct=answers.filter(x=>x.is_correct===true).length;
+      const wrong=answers.filter(x=>x.is_correct===false).length;
+      const unattempted=Math.max(0,total-answers.length);
+      return {...r,_total:total,_correct:correct,_wrong:wrong,_unattempted:unattempted,_score:correct,_percentage:total?(correct/total)*100:0};
+    }));
+
+    currentRows=enriched;
+    box.innerHTML=enriched.map((r,i)=>`<div class="attempt">
+      <div class="attempt-top"><div class="attempt-title">${esc(testLabel(r.tests))}</div><div class="score">${r._score}/${r._total}</div></div>
+      <div class="meta">सही ${r._correct} • गलत ${r._wrong} • छोड़े ${r._unattempted} • ${r._percentage.toFixed(1)}%${r.submitted_at?' • '+esc(new Date(r.submitted_at).toLocaleTimeString('hi-IN',{hour:'2-digit',minute:'2-digit'})):''}</div>
+      <button class="review-btn" onclick="openReview(${i})">प्रश्नपत्र Review करें</button>
+    </div>`).join('');
+  }catch(err){
+    console.error('Previous Result Supabase Error:',err);
+    box.innerHTML=`<div class="empty" style="color:#a33">❌ Result load नहीं हो सका।<br><small>${esc(err.message||err)}</small></div>`;
+  }
+}
+
+async function openReview(index){
+  const db=getDB(); const r=currentRows[index]; if(!r) return;
+  const review=document.getElementById('review'), qbox=document.getElementById('questions');
+  qbox.innerHTML='<div class="empty">☁️ प्रश्नपत्र लोड हो रहा है...</div>';
+  review.classList.add('show'); review.scrollIntoView({behavior:'smooth',block:'start'});
+  try{
+    const student=await getStudent();
+    const [tqRes,ansRes]=await Promise.all([
+      db.from('test_questions').select('question_id,question_order').eq('test_id',r.test_id).order('question_order',{ascending:true}),
+      db.from('student_answers').select('question_id,selected_option,is_correct,time_taken_seconds').eq('student_id',student.id).eq('test_id',r.test_id)
+    ]);
+    if(tqRes.error) throw tqRes.error; if(ansRes.error) throw ansRes.error;
+    const tq=tqRes.data||[], answers=new Map((ansRes.data||[]).map(a=>[String(a.question_id),a])), ids=tq.map(x=>x.question_id);
+    let questions=[];
+    if(ids.length){
+      const qRes=await db.from('questions').select('id,question_text,option_a,option_b,option_c,option_d,correct_option,chapter_number,chapter_name').in('id',ids);
+      if(qRes.error) throw qRes.error;
+      const byId=new Map((qRes.data||[]).map(q=>[String(q.id),q]));
+      questions=tq.map(x=>byId.get(String(x.question_id))).filter(Boolean);
+    }
+    document.getElementById('reviewMeta').innerHTML=`<b>${esc(testLabel(r.tests))}</b><br>तारीख: ${formatDMY(document.getElementById('date').value)} &nbsp; | &nbsp; अंक: <b>${r._score}/${r._total}</b> &nbsp; | &nbsp; सही: ${r._correct} • गलत: ${r._wrong} • छोड़े: ${r._unattempted}`;
+    if(!questions.length){qbox.innerHTML='<div class="empty">इस attempt का प्रश्नपत्र उपलब्ध नहीं है।</div>';return;}
+    qbox.innerHTML=questions.map((q,i)=>{
+      const a=answers.get(String(q.id)), selected=a?.selected_option, isCorrect=a?.is_correct===true;
+      const attempted=selected!==null && selected!==undefined && String(selected).trim()!=='';
+      const your=attempted?selected:'उत्तर नहीं दिया';
+      const options=[['A',q.option_a],['B',q.option_b],['C',q.option_c],['D',q.option_d]].filter(x=>x[1]!=null&&String(x[1]).trim()!=='');
+      return `<div class="q"><div class="qno">प्रश्न ${i+1}${q.chapter_name?' • '+esc(q.chapter_name):''}</div><div class="qtext">${esc(q.question_text)}</div>${options.length?`<div class="meta" style="margin:6px 0">${options.map(x=>`<div><b>${x[0]}.</b> ${esc(x[1])}</div>`).join('')}</div>`:''}<div class="ans ${isCorrect?'correct':'wrong'}">आपका उत्तर: ${isCorrect?'✅':'❌'} ${esc(your)} — ${isCorrect?'सही उत्तर':'गलत / छोड़ा गया'}</div><div class="ans correct">सही उत्तर: ✅ ${esc(q.correct_option)}</div></div>`;
+    }).join('');
+  }catch(err){
+    console.error('Review Supabase Error:',err);
+    qbox.innerHTML=`<div class="empty" style="color:#a33">❌ प्रश्नपत्र Review नहीं हो सका।<br><small>${esc(err.message||err)}</small></div>`;
+  }
+}
+
+const dateInput=document.getElementById('date'), dateDisplay=document.getElementById('dateDisplay'), datePick=document.getElementById('datePick');
 function syncDisplay(){dateDisplay.value=formatDMY(dateInput.value);}
-dateDisplay.addEventListener('input',()=>{let v=dateDisplay.value.replace(/\D/g,'').slice(0,8);if(v.length>4)v=v.slice(0,2)+'/'+v.slice(2,4)+'/'+v.slice(4);else if(v.length>2)v=v.slice(0,2)+'/'+v.slice(2);dateDisplay.value=v;const iso=parseDMY(v);if(iso){dateInput.value=iso;loadAttempts();}});
-dateDisplay.addEventListener('blur',()=>{if(dateDisplay.value&&!parseDMY(dateDisplay.value))syncDisplay();});
+dateDisplay.addEventListener('input',()=>{
+  let v=dateDisplay.value.replace(/\D/g,'').slice(0,8);
+  if(v.length>4)v=v.slice(0,2)+'/'+v.slice(2,4)+'/'+v.slice(4);
+  else if(v.length>2)v=v.slice(0,2)+'/'+v.slice(2);
+  dateDisplay.value=v;
+  const iso=parseDMY(v); if(iso){dateInput.value=iso;loadAttempts();}
+});
+dateDisplay.addEventListener('blur',()=>{if(dateDisplay.value&&!parseDMY(dateDisplay.value)) syncDisplay();});
 datePick.addEventListener('click',()=>{try{dateInput.showPicker();}catch(e){dateInput.click();}});
 dateInput.addEventListener('change',()=>{syncDisplay();loadAttempts();});
-testSelect.addEventListener('change',()=>renderSelectedAttempt(testSelect.value));
-dateInput.value=indiaToday();syncDisplay();loadAttempts();
+dateInput.value=indiaToday(); syncDisplay(); loadAttempts();
 </script>
 </body>
 </html>
