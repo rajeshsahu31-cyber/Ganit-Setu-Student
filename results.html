@@ -2,34 +2,49 @@
 <html lang="hi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#1268d6">
-<title>मेरे परिणाम | गणित सेतु</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>रिजल्ट | गणित सेतु</title>
 <link rel="stylesheet" href="assets/css/style.css">
 <style>
-:root{--r-blue:#1268d6;--r-blue2:#eaf3ff;--r-text:#18324d;--r-muted:#6c7d90;--r-border:#dbe7f4}
-body{margin:0;background:#f5f9ff;color:var(--r-text);font-family:Arial,"Noto Sans Devanagari",sans-serif;padding-bottom:78px}
-.r-wrap{max-width:720px;margin:0 auto;padding:16px}.r-head{background:linear-gradient(135deg,#1268d6,#2486e8);color:#fff;border-radius:18px;padding:20px 18px;box-shadow:0 8px 22px rgba(18,104,214,.16)}.r-head h1{font-size:22px;margin:0 0 6px}.r-head p{margin:0;font-size:13px;opacity:.94}.r-card{background:#fff;border:1px solid var(--r-border);border-radius:16px;padding:16px;margin-top:14px;box-shadow:0 5px 18px rgba(20,60,100,.06)}.r-label{font-size:13px;font-weight:700;margin-bottom:8px;display:block}.r-select{width:100%;box-sizing:border-box;padding:12px;border:1px solid #cbdbea;border-radius:11px;font-size:15px;background:#fff;color:var(--r-text);font-family:inherit}.r-select:focus{outline:none;border-color:var(--r-blue);box-shadow:0 0 0 3px rgba(18,104,214,.10)}.r-today{background:var(--r-blue2);border:1px solid #cfe2fb;border-radius:12px;padding:11px 12px;font-size:12px;line-height:1.55;color:#315a83;margin-bottom:12px}.r-result{border:1px solid var(--r-border);border-radius:13px;padding:13px}.r-top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.r-title{font-weight:800;font-size:15px}.r-score{font-weight:800;color:var(--r-blue);white-space:nowrap;font-size:16px}.r-meta{font-size:12px;color:var(--r-muted);margin-top:5px;line-height:1.7}.r-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:11px}.r-stat{background:#f6f9fc;border:1px solid #e3edf6;border-radius:10px;padding:8px 5px;text-align:center}.r-stat b{display:block;font-size:14px;color:#173b6c}.r-stat small{display:block;color:var(--r-muted);font-size:10px;margin-top:2px}.r-empty{text-align:center;color:var(--r-muted);padding:18px 8px;font-size:13px;line-height:1.65}.r-empty strong{color:#315a83}.r-note{font-size:11px;color:var(--r-muted);margin-top:10px;text-align:center}.bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:999;background:#fff;border-top:1px solid #dce7f2;box-shadow:0 -5px 18px rgba(20,60,100,.08);padding:7px 8px calc(7px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(4,1fr);gap:4px}.bottom-nav a{text-decoration:none;color:#647487;text-align:center;font-size:11px;font-weight:700;padding:5px 2px;border-radius:11px;min-width:0}.bottom-nav a span{display:block;font-size:21px;line-height:23px;margin-bottom:2px}.bottom-nav a.active{color:var(--r-blue);background:#eef5ff}@media(max-width:380px){.r-wrap{padding:12px}.r-head h1{font-size:20px}.r-card{padding:13px}.r-stats{gap:5px}.r-stat b{font-size:13px}.bottom-nav a{font-size:10px}.bottom-nav a span{font-size:19px}}
+.today-result-wrap{max-width:720px;margin:0 auto;padding:16px}
+.today-head{background:linear-gradient(135deg,#1268d6,#2486e8);color:#fff;border-radius:18px;padding:20px 18px;box-shadow:0 8px 22px rgba(18,104,214,.16)}
+.today-head h1{font-size:22px;margin:0 0 6px}.today-head p{margin:0;font-size:13px;opacity:.94}
+.today-card{background:#fff;border:1px solid #dbe7f4;border-radius:16px;padding:16px;margin-top:14px;box-shadow:0 5px 18px rgba(20,60,100,.06)}
+.today-label{font-size:13px;font-weight:700;margin-bottom:8px;display:block}
+#testSelect{width:100%;box-sizing:border-box;padding:12px;border:1px solid #cbdbea;border-radius:11px;font-size:15px;background:#fff;color:#18324d}
+.today-note{background:#eaf3ff;border:1px solid #cfe2fb;border-radius:12px;padding:11px;font-size:12px;line-height:1.5;color:#315a83;margin-top:10px}
+.today-result{border:1px solid #dbe7f4;border-radius:13px;padding:13px;margin-top:12px}
+.today-title{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.today-title b{font-size:15px}.today-score{font-weight:800;color:#1268d6;white-space:nowrap}
+.today-meta{font-size:12px;color:#6c7d90;margin-top:5px}
+.today-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:12px}
+.today-stat{background:#f5f9ff;border-radius:10px;padding:9px 5px;text-align:center}.today-stat b{display:block;font-size:15px}.today-stat small{display:block;color:#6c7d90;font-size:10px;margin-top:3px}
+.today-empty{text-align:center;color:#6c7d90;padding:18px 8px;font-size:13px}
+@media(max-width:420px){.today-result-wrap{padding:12px}.today-head h1{font-size:20px}.today-stats{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
-<main class="r-wrap">
-<section class="r-head"><h1>📋 मेरे परिणाम</h1><p>आज दिए गए टेस्ट का परिणाम देखें</p></section>
-<section class="r-card">
-<div class="r-today"><b>📅 आज का परिणाम</b><br><span id="todayLabel">आज</span><br>यहाँ केवल आज के आपके परिणाम दिखाए जाएंगे। पुराने परिणाम के लिए <b>पिछला परिणाम जानें</b> खोलें।</div>
-<label class="r-label" for="testSelect">📝 Test Type चुनें</label>
-<select id="testSelect" class="r-select">
-<option value="course_progress">Course Test</option>
-<option value="chapter_practice">Chapter Test</option>
-<option value="daily">Practice Test</option>
-</select>
-<div id="resultList" style="margin-top:12px"><div class="r-empty">☁️ परिणाम लोड हो रहा है...</div></div>
-<div class="r-note">तीनों Test Type हमेशा दिखाई देंगे। जिस Test को आपने आज नहीं दिया है, वहाँ उसका संदेश दिखाई देगा।</div>
+<header class="simple-header">
+  <a href="home.html">← होम</a>
+  <div class="mini-brand">📊 मेरे रिजल्ट</div>
+</header>
+<main class="today-result-wrap">
+<section class="today-head">
+  <h1>📋 मेरे परिणाम</h1>
+  <p>आज के टेस्ट का परिणाम देखें</p>
+</section>
+<section class="today-card">
+  <label class="today-label" for="testSelect">📝 Test Type चुनें</label>
+  <select id="testSelect">
+    <option value="course_progress">कोर्स टेस्ट</option>
+    <option value="chapter_practice">अध्याय टेस्ट</option>
+    <option value="daily">Practice Test</option>
+  </select>
+  <div class="today-note">यहाँ केवल आज के परिणाम दिखाए जाएंगे। जिस टेस्ट को आज नहीं दिया है, उसका परिणाम उपलब्ध नहीं होगा।</div>
+</section>
+<section class="today-card">
+  <div id="resultList"><div class="today-empty">परिणाम लोड हो रहा है...</div></div>
 </section>
 </main>
-<nav class="bottom-nav">
-<a href="home.html"><span>🏠</span>होम</a><a href="leaderboard.html"><span>🏆</span>रैंकिंग</a><a href="pragati.html"><span>📈</span>प्रगति</a><a href="profile.html"><span>👤</span>प्रोफाइल</a>
-</nav>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="assets/js/supabase.js"></script>
 <script src="assets/results.js"></script>
