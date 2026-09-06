@@ -228,7 +228,7 @@ async function loadFromAttemptTables(db, iso, student){
     const tc=normalizeClass(t.class_level);
     if(tc && cls && tc!==cls) return null;
     return normalizeRpcRow({
-      ...a,test_id:a.test_id,test_title:t.title,test_type:t.test_type,class_level:t.class_level,
+      ...a,attempt_id:a.id,test_id:a.test_id,test_title:t.title,test_type:t.test_type,class_level:t.class_level,
       submitted_at:a.submitted_at,total_marks:t.total_marks || t.total_questions,total_questions:t.total_questions
     });
   }).filter(Boolean);
@@ -339,38 +339,48 @@ async function openReview(index){
   try{
     const student=await getStudent();
     const testId=await resolveTestId(db,r,student);
-    const attemptId=Number(r.attempt_id || r.id || 0);
     const total=Number(r.total_marks||r.total_questions||0), score=Number(r.score??r.correct_answers??0);
     document.getElementById('reviewMeta').innerHTML=`<b>${esc(testLabel(r))}</b><br>तारीख: ${formatDMY(document.getElementById('date').value)} &nbsp; | &nbsp; अंक: <b>${score}/${total}</b>`;
     if(!testId){ qbox.innerHTML='<div class="empty">इस Result का test ID नहीं मिला, इसलिए प्रश्नपत्र Review उपलब्ध नहीं है।</div>'; return; }
-    if(!attemptId){ qbox.innerHTML='<div class="empty">इस Result का attempt ID नहीं मिला, इसलिए आपके उत्तर Review नहीं किए जा सकते।</div>'; return; }
 
-    // Questions belong to the test; the student's answers belong to the exact attempt.
-    // Do not query student_id/test_id/time_taken_seconds from student_answers because those columns do not exist.
+    let attemptId = r.attempt_id || r.id_attempt || null;
+    if(!attemptId){
+      const {data:attempt,error:attemptError}=await db.from('test_attempts')
+        .select('id').eq('student_id',student.id).eq('test_id',testId).maybeSingle();
+      if(attemptError) throw attemptError;
+      attemptId=attempt?.id || null;
+    }
+    if(!attemptId){
+      qbox.innerHTML='<div class="empty">इस Result का attempt record नहीं मिला, इसलिए प्रश्नपत्र Review उपलब्ध नहीं है।</div>'; return;
+    }
+
     const [tqRes,ansRes]=await Promise.all([
       db.from('test_questions').select('question_id,question_order').eq('test_id',testId).order('question_order',{ascending:true}),
-      db.from('student_answers').select('question_id,selected_option,is_correct,answered_at').eq('attempt_id',attemptId)
+      db.from('student_answers').select('question_id,selected_option,is_correct').eq('attempt_id',attemptId)
     ]);
     if(tqRes.error) throw tqRes.error;
     if(ansRes.error) throw ansRes.error;
-    const tq=tqRes.data||[];
+    let tq=tqRes.data||[];
     const answers=new Map((ansRes.data||[]).map(a=>[String(a.question_id),a]));
+    if(!tq.length && ansRes.data?.length){
+      tq=ansRes.data.map((a,i)=>({question_id:a.question_id,question_order:i+1}));
+    }
     const ids=tq.map(x=>x.question_id);
     let questions=[];
     if(ids.length){
-      const qRes=await db.from('questions').select('id,question_text,option_a,option_b,option_c,option_d,correct_option,chapter_number,chapter_name,explanation,hint,marks').in('id',ids);
+      const qRes=await db.from('questions').select('id,question_text,option_a,option_b,option_c,option_d,correct_option,chapter_number,chapter_name').in('id',ids);
       if(qRes.error) throw qRes.error;
       const byId=new Map((qRes.data||[]).map(q=>[String(q.id),q]));
       questions=tq.map(x=>byId.get(String(x.question_id))).filter(Boolean);
     }
-    if(!questions.length){qbox.innerHTML='<div class="empty">इस Test के प्रश्न उपलब्ध नहीं हैं।</div>';return;}
+    if(!questions.length){qbox.innerHTML='<div class="empty">इस attempt का प्रश्नपत्र उपलब्ध नहीं है।</div>';return;}
     qbox.innerHTML=questions.map((q,i)=>{
       const a=answers.get(String(q.id));
       const attempted=a?.selected_option!==null && a?.selected_option!==undefined && String(a.selected_option).trim()!=='';
       const isCorrect=a?.is_correct===true;
-      const your=attempted?String(a.selected_option).trim():'उत्तर नहीं दिया';
+      const your=attempted?a.selected_option:'उत्तर नहीं दिया';
       const options=[['A',q.option_a],['B',q.option_b],['C',q.option_c],['D',q.option_d]].filter(x=>x[1]!=null&&String(x[1]).trim()!=='');
-      return `<div class="q"><div class="qno">प्रश्न ${i+1}${q.chapter_name?' • '+esc(q.chapter_name):''}</div><div class="qtext">${esc(q.question_text)}</div>${options.length?`<div class="meta" style="margin:6px 0">${options.map(x=>`<div><b>${x[0]}.</b> ${esc(x[1])}</div>`).join('')}</div>`:''}<div class="ans ${isCorrect?'correct':'wrong'}">आपका उत्तर: ${isCorrect?'✅':'❌'} ${esc(your)}</div><div class="ans correct">सही उत्तर: ✅ ${esc(q.correct_option)}</div>${q.explanation?`<div class="meta" style="margin-top:7px"><b>व्याख्या:</b> ${esc(q.explanation)}</div>`:''}</div>`;
+      return `<div class="q"><div class="qno">प्रश्न ${i+1}${q.chapter_name?' • '+esc(q.chapter_name):''}</div><div class="qtext">${esc(q.question_text)}</div>${options.length?`<div class="meta" style="margin:6px 0">${options.map(x=>`<div><b>${x[0]}.</b> ${esc(x[1])}</div>`).join('')}</div>`:''}<div class="ans ${isCorrect?'correct':'wrong'}">आपका उत्तर: ${isCorrect?'✅':'❌'} ${esc(your)}</div><div class="ans correct">सही उत्तर: ✅ ${esc(q.correct_option)}</div></div>`;
     }).join('');
   }catch(err){
     console.error('Review Supabase Error:',err);
