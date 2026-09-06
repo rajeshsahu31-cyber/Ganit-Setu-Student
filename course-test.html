@@ -111,101 +111,34 @@ body{padding-bottom:18px}
 
 </style>
 
-<style id="gs-modern-test-ui">
-/* UI ONLY: no test.js/Supabase/attempt logic changes */
-.gs-test{background:#f7f6fc!important;padding:10px 8px 16px!important}
-.gs-test-top{background:linear-gradient(135deg,#5b43d6,#8068f2)!important;color:#fff!important;border-radius:17px!important;padding:9px 10px!important;box-shadow:0 5px 18px rgba(70,50,160,.16)!important}
-.gs-round-back{background:#ffffff22!important;color:#fff!important;border:0!important}
-.gs-test-heading h1{color:#fff!important;font-size:15px!important}
-.gs-test-heading p{color:#eeeaff!important;font-size:10px!important}
-.gs-timer{background:#ffffff20!important;border-color:#ffffff35!important;color:#fff!important;border-radius:11px!important}
-.gs-progress{background:#fff!important;border:0!important;border-radius:15px!important;padding:9px 11px!important;box-shadow:0 3px 12px rgba(40,30,90,.06)!important}
-.gs-progress-line{font-size:11px!important;color:#66677a!important}
-.gs-progress-track{height:7px!important;background:#e9e7f3!important}
-.gs-progress-bar{background:linear-gradient(90deg,#5b43d6,#8068f2)!important}
-.gs-question{background:#fff!important;border:0!important;border-radius:19px!important;padding:15px 12px!important;box-shadow:0 5px 18px rgba(40,30,90,.07)!important}
-.gs-qbadge{background:#eeeaff!important;color:#5b43d6!important;border-radius:11px!important}
-.gs-mark{background:#f1eff9!important;color:#625d73!important;border-radius:10px!important}
-.gs-question-text{color:#20243a!important;font-size:16px!important;line-height:1.65!important;font-weight:700!important}
-.chapter-label{color:#5b43d6!important;background:#f1efff!important;border-radius:8px!important;padding:4px 7px!important}
-.gs-options{gap:8px!important}
-.option-btn{background:#fff!important;border:1.5px solid #dedce8!important;border-radius:13px!important;color:#292d40!important;padding:10px!important;box-shadow:0 1px 4px rgba(30,25,70,.03)!important}
-.option-btn b{background:#f0eef7!important;color:#5b43d6!important}
-.option-btn.selected{border-color:#6b55dc!important;background:#f1efff!important}
-.option-btn.selected b{background:#6b55dc!important;color:#fff!important}
-.problem-answer{border:1.5px solid #dedce8!important;border-radius:13px!important}
-.gs-nav{gap:8px!important}
-.gs-nav .outline-btn,.gs-nav .primary-btn{border-radius:13px!important;min-height:45px!important}
-.gs-nav .primary-btn{background:linear-gradient(135deg,#5b43d6,#8068f2)!important}
-.gs-foot-note{background:#f0eef9!important;color:#716d80!important;border-radius:10px!important;font-size:10px!important;padding:8px!important}
-@media(max-width:480px){
- .gs-wrap{padding:10px 8px 8px!important}
- .gs-test-heading h1{font-size:14px!important}
- .gs-question-text{font-size:15px!important}
- .option-btn{font-size:13px!important}
-}
-</style>
-
-<style id="gs-explanation-modal-ui">
+<style id="gs-explanation-ui-final">
 .gs-explain-open{
-  width:100%;margin-top:10px;padding:10px 12px;border:1px solid #ded9f5;
-  border-radius:12px;background:#f2efff;color:#5741c5;font-size:13px;font-weight:700;
-  cursor:pointer;
+display:none;width:100%;margin:10px 0 0;padding:11px 13px;border:1px solid #d9d3f5;
+border-radius:12px;background:#f3f0ff;color:#513bbd;font:700 14px/1.5 "Noto Sans Devanagari",sans-serif
 }
-.gs-explain-modal{
-  position:fixed;inset:0;background:rgba(20,16,45,.42);display:none;align-items:flex-end;
-  justify-content:flex-start;z-index:9999;padding:0;
-}
+.gs-explain-modal{position:fixed;inset:0;background:rgba(17,14,35,.42);display:none;
+align-items:flex-end;justify-content:flex-start;z-index:99999;padding:0 0 12px 12px}
 .gs-explain-modal.show{display:flex}
-.gs-explain-panel{
-  width:min(92vw,560px);margin:0 0 14px 14px;background:#fff;border-radius:18px;
-  box-shadow:0 12px 40px rgba(20,16,45,.25);padding:15px;max-height:72vh;overflow:auto;
-}
-.gs-explain-title{display:flex;align-items:center;justify-content:space-between;gap:10px;
-  color:#33266f;font-size:15px;font-weight:800;margin-bottom:9px}
-.gs-explain-close{border:0;background:#eeeafa;color:#5741c5;border-radius:10px;width:34px;height:34px;font-size:19px}
-.gs-explain-body{font-size:15px;line-height:1.75;color:#2e3140;white-space:normal}
-@media(max-width:480px){
- .gs-explain-panel{width:calc(100vw - 22px);margin:0 0 10px 11px;padding:14px}
- .gs-explain-body{font-size:14px;line-height:1.75}
-}
+.gs-explain-panel{width:min(92vw,560px);max-height:76vh;overflow:auto;background:#fff;border-radius:18px;
+box-shadow:0 14px 42px rgba(20,16,50,.25);padding:16px}
+.gs-explain-title{display:flex;justify-content:space-between;align-items:center;font:800 17px/1.4 "Noto Sans Devanagari",sans-serif;color:#33266f;margin-bottom:10px}
+.gs-explain-close{border:0;background:#eeeafa;color:#513bbd;border-radius:10px;width:35px;height:35px;font-size:21px}
+.gs-explain-body{font:500 16px/1.85 "Noto Sans Devanagari",sans-serif;color:#2d3040}
+.gs-question-text{font-size:18px!important;line-height:1.8!important}
+.option-btn{font-size:15px!important;line-height:1.7!important}
+@media(max-width:480px){.gs-question-text{font-size:17px!important}.option-btn{font-size:14.5px!important}.gs-explain-body{font-size:15px}}
 </style>
-<script>
+<script id="gs-explanation-ui-final">
 (function(){
- function addModal(){
-   if(document.getElementById('gsExplainModal')) return;
-   const m=document.createElement('div');
-   m.id='gsExplainModal'; m.className='gs-explain-modal';
-   m.innerHTML='<div class="gs-explain-panel" role="dialog" aria-modal="true">'+
-     '<div class="gs-explain-title"><span>💡 Explanation</span><button class="gs-explain-close" type="button" aria-label="Close">×</button></div>'+
-     '<div id="gsExplainBody" class="gs-explain-body"></div></div>';
-   document.body.appendChild(m);
-   m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show')});
-   m.querySelector('.gs-explain-close').onclick=()=>m.classList.remove('show');
+ function init(){
+  if(document.getElementById('gsExplainModal')) return;
+  const m=document.createElement('div');m.id='gsExplainModal';m.className='gs-explain-modal';
+  m.innerHTML='<div class="gs-explain-panel"><div class="gs-explain-title"><span>💡 Explanation</span><button type="button" class="gs-explain-close">×</button></div><div id="gsExplainBody" class="gs-explain-body"></div></div>';
+  document.body.appendChild(m);
+  m.querySelector('.gs-explain-close').onclick=()=>m.classList.remove('show');
+  m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show')});
  }
- function findExplanation(){
-   const candidates=[...document.querySelectorAll('.explanation,.explain,.feedback,.solution,.answer-explanation,[data-explanation]')];
-   return candidates.find(el=>el.textContent.trim().length>0);
- }
- function install(){
-   addModal();
-   const obs=new MutationObserver(()=>{
-     document.querySelectorAll('.gs-explain-open').forEach(btn=>{
-       if(btn.dataset.bound)return;
-       btn.dataset.bound='1';
-       btn.onclick=()=>{
-         const source=findExplanation();
-         const body=document.getElementById('gsExplainBody');
-         if(!source){body.textContent='इस प्रश्न का Explanation उपलब्ध नहीं है।';}
-         else{body.innerHTML=source.innerHTML;}
-         document.getElementById('gsExplainModal').classList.add('show');
-       };
-     });
-   });
-   obs.observe(document.body,{childList:true,subtree:true});
-   document.addEventListener('keydown',e=>{if(e.key==='Escape')document.getElementById('gsExplainModal')?.classList.remove('show')});
- }
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install);else install();
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })();
 </script>
 </head>
