@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="hi">
 <head>
@@ -384,7 +385,7 @@ async function openReview(index){
     ]));
 
     qbox.innerHTML=questions.map((q,i)=>{
-      const a=answers.get(String(q.id));
+      const a=answers.get(String(q.question_id));
       const attempted=a?.selected_option!==null && a?.selected_option!==undefined && String(a.selected_option).trim()!=='';
       const isCorrect=a?.is_correct===true;
       const your=attempted?String(a.selected_option).trim():'उत्तर नहीं दिया';
