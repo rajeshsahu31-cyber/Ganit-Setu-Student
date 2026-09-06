@@ -178,7 +178,7 @@ function normalizeRpcRow(r){
   return {
     ...r,
     test_id:r.test_id || r.test_uuid || r.id_test || null,
-    attempt_id:r.attempt_id || r.attemptId || r.attempt || r.test_attempt_id || null,
+    attempt_id:r.attempt_id || r.test_attempt_id || r.attemptId || null,
     test_title:r.test_title || r.title || r.test_name || '',
     test_type:r.test_type || '',
     class_level:r.class_level ?? r.class_name ?? null,
@@ -229,8 +229,8 @@ async function loadFromAttemptTables(db, iso, student){
     const tc=normalizeClass(t.class_level);
     if(tc && cls && tc!==cls) return null;
     return normalizeRpcRow({
-      ...a,test_id:a.test_id,test_title:t.title,test_type:t.test_type,class_level:t.class_level,
-      submitted_at:a.submitted_at,attempt_id:a.id,total_marks:t.total_marks || t.total_questions,total_questions:t.total_questions
+      ...a,attempt_id:a.id,test_id:a.test_id,test_title:t.title,test_type:t.test_type,class_level:t.class_level,
+      submitted_at:a.submitted_at,total_marks:t.total_marks || t.total_questions,total_questions:t.total_questions
     });
   }).filter(Boolean);
 }
@@ -349,8 +349,7 @@ async function openReview(index){
     const testId=await resolveTestId(db,r,student);
     const total=Number(r.total_marks||r.total_questions||0);
     const score=Number(r.score??r.correct_answers??0);
-    const selectedDate=document.getElementById('date').value;
-    meta.innerHTML=`<b>${esc(testLabel(r))}</b><br>तारीख: ${formatDMY(selectedDate)} &nbsp; | &nbsp; अंक: <b>${score}/${total}</b>`;
+    meta.innerHTML=`<b>${esc(testLabel(r))}</b><br>तारीख: ${formatDMY(document.getElementById('date').value)} &nbsp; | &nbsp; अंक: <b>${score}/${total}</b>`;
 
     if(!testId){
       qbox.innerHTML='<div class="empty">इस Result का Test ID नहीं मिला, इसलिए प्रश्नपत्र Review उपलब्ध नहीं है।</div>';
@@ -358,7 +357,8 @@ async function openReview(index){
     }
 
     // सबसे पहले Result में मौजूद exact attempt_id का उपयोग करें।
-    // इससे एक ही Test के पुराने/नए attempts आपस में mix नहीं होंगे।
+    // अगर पुराने Result source में attempt_id नहीं है, तो चुनी हुई तारीख
+    // + student + test के आधार पर उसी दिन का attempt खोजें।
     let attempt=null;
     if(r.attempt_id){
       const {data,error}=await db.from('test_attempts')
@@ -368,31 +368,12 @@ async function openReview(index){
         .eq('test_id',testId)
         .maybeSingle();
       if(error) throw error;
-      attempt=data||null;
+      attempt=data;
     }
 
-    // पुराने Result/RPC में attempt_id न होने पर उसी तारीख का exact attempt खोजें।
-    if(!attempt){
-      const from=`${selectedDate}T00:00:00+05:30`;
-      const to=`${nextDate(selectedDate)}T00:00:00+05:30`;
-      const {data,error}=await db.from('test_attempts')
-        .select('id,test_id,status,submitted_at,created_at')
-        .eq('student_id',student.id)
-        .eq('test_id',testId)
-        .not('submitted_at','is',null)
-        .gte('submitted_at',from)
-        .lt('submitted_at',to)
-        .order('submitted_at',{ascending:false})
-        .limit(1)
-        .maybeSingle();
-      if(error) throw error;
-      attempt=data||null;
-    }
-
-    // कुछ पुराने records में submitted_at null हो सकता है; created_at fallback।
-    if(!attempt){
-      const from=`${selectedDate}T00:00:00+05:30`;
-      const to=`${nextDate(selectedDate)}T00:00:00+05:30`;
+    if(!attempt?.id){
+      const iso=document.getElementById('date').value;
+      const from=`${iso}T00:00:00+05:30`, to=`${nextDate(iso)}T00:00:00+05:30`;
       const {data,error}=await db.from('test_attempts')
         .select('id,test_id,status,submitted_at,created_at')
         .eq('student_id',student.id)
@@ -403,11 +384,28 @@ async function openReview(index){
         .limit(1)
         .maybeSingle();
       if(error) throw error;
-      attempt=data||null;
+      attempt=data;
+    }
+
+    // कुछ पुराने records में created_at/submitted_at में अंतर हो सकता है।
+    if(!attempt?.id){
+      const iso=document.getElementById('date').value;
+      const from=`${iso}T00:00:00+05:30`, to=`${nextDate(iso)}T00:00:00+05:30`;
+      const {data,error}=await db.from('test_attempts')
+        .select('id,test_id,status,submitted_at,created_at')
+        .eq('student_id',student.id)
+        .eq('test_id',testId)
+        .gte('submitted_at',from)
+        .lt('submitted_at',to)
+        .order('submitted_at',{ascending:false})
+        .limit(1)
+        .maybeSingle();
+      if(error) throw error;
+      attempt=data;
     }
 
     if(!attempt?.id){
-      qbox.innerHTML='<div class="empty">इस चुनी हुई तारीख के Test का submitted attempt नहीं मिला, इसलिए Review उपलब्ध नहीं है।</div>';
+      qbox.innerHTML='<div class="empty">इस तारीख और Test के लिए submitted attempt नहीं मिला, इसलिए Review उपलब्ध नहीं है।</div>';
       return;
     }
 
@@ -426,6 +424,9 @@ async function openReview(index){
 
     const tq=tqRes.data||[];
     const answers=new Map((ansRes.data||[]).map(a=>[String(a.question_id),a]));
+
+    // सामान्य रास्ता: test_questions में जुड़े प्रश्न।
+    // fallback: अगर पुराने test में mapping न हो, तो उसी attempt के answer question IDs।
     let orderedIds=tq.map(x=>x.question_id).filter(Boolean);
     if(!orderedIds.length){
       orderedIds=[...(answers.keys())].map(Number).filter(Number.isFinite);
@@ -444,6 +445,7 @@ async function openReview(index){
 
     const byId=new Map((qData||[]).map(q=>[String(q.id),q]));
     const questions=orderedIds.map(id=>byId.get(String(id))).filter(Boolean);
+
     if(!questions.length){
       qbox.innerHTML='<div class="empty">इस Test के प्रश्न उपलब्ध नहीं हैं।</div>';
       return;
