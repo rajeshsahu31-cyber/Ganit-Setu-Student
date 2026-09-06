@@ -160,6 +160,25 @@ body{padding-bottom:18px}
   white-space:pre-wrap;
 }
 </style>
+
+<style id="gs-answer-lock">
+.answer-feedback{
+  min-height:20px;
+  margin:4px 2px 0;
+  text-align:center;
+  font:700 13px/1.4 "Noto Sans Devanagari",sans-serif;
+}
+.option-btn.answer-correct{
+  border-color:#16a56f!important;
+  background:#e9f9f1!important;
+  color:#08724d!important;
+}
+.option-btn.answer-wrong{
+  border-color:#e05263!important;
+  background:#fff0f2!important;
+  color:#b42335!important;
+}
+.option-btn:disabled{cursor:default!important;opacity:1!important}
 </head>
 <body>
 <header class="gs-header">
@@ -227,6 +246,7 @@ body{padding-bottom:18px}
         <div class="gs-question-help"><button type="button" id="questionHint" class="gs-question-help-btn hint-flash">💡 Hint</button></div>
 <div class="gs-question-text" id="questionText"></div>
         <div class="gs-options" id="options"></div>
+<div id="answerFeedback" class="answer-feedback" aria-live="polite"></div>
 <div class="gs-question-explain"><button type="button" id="questionExplanation" class="gs-question-help-btn">💡 Explanation देखें</button></div>
       </div>
 
