@@ -2,12 +2,6 @@
 // Clean replacement: all three tests + Supabase save
 
 const $ = id => document.getElementById(id);
-
-(function addAnswerLockStyles(){
-  const style = document.createElement('style');
-  style.textContent = '.option-btn.answer-correct{border-color:#16a56f!important;background:#e9f9f1!important;color:#08724d!important}.option-btn.answer-wrong{border-color:#e05263!important;background:#fff0f2!important;color:#b42335!important}.option-btn:disabled{cursor:default!important;opacity:1!important}';
-  document.head.appendChild(style);
-})();
 const MAX_CHAPTERS = { 9: 12, 10: 14 };
 const DAILY_QUESTION_COUNT = 5;
 
@@ -175,45 +169,18 @@ function renderQuestion() {
     </button>`
   ).join('');
 
-  const optionButtons = $('options').querySelectorAll('button');
-  const savedAnswer = answers[currentIndex];
-
-  // If this question was already answered, keep it locked.
-  if (savedAnswer) {
-    optionButtons.forEach(x => {
-      x.disabled = true;
-      if (x.dataset.option === savedAnswer) x.classList.add('selected');
-    });
-    showExplanationAfterAnswer();
-  }
-
-  optionButtons.forEach(btn => {
+  $('options').querySelectorAll('button').forEach(btn => {
     btn.onclick = () => {
-      // One answer only. A second option cannot be selected.
-      if (answers[currentIndex]) return;
+      // एक प्रश्न पर केवल एक बार उत्तर चुनने दें।
+        if (answers[currentIndex] !== undefined && answers[currentIndex] !== null && answers[currentIndex] !== '') return;
 
-      const selected = String(btn.dataset.option || '').trim().toUpperCase();
-      const correct = String(q.correct_option || '').trim().toUpperCase();
-      answers[currentIndex] = btn.dataset.option;
+        answers[currentIndex] = btn.dataset.option;
       showExplanationAfterAnswer();
-
-      optionButtons.forEach(x => {
-        x.disabled = true;
-        x.classList.remove('selected');
-        const opt = String(x.dataset.option || '').trim().toUpperCase();
-        if (opt === correct) x.classList.add('answer-correct');
-        if (opt === selected && selected !== correct) x.classList.add('answer-wrong');
-      });
-
-      let feedback = $('answerFeedback');
-      if (!feedback) {
-        feedback = document.createElement('div');
-        feedback.id = 'answerFeedback';
-        feedback.style.cssText = 'text-align:center;min-height:20px;margin:4px 0;font-weight:700;font-size:13px;';
-        $('options').insertAdjacentElement('afterend', feedback);
-      }
-      feedback.textContent = selected === correct ? '✓ सही उत्तर' : '✕ गलत उत्तर';
-      feedback.style.color = selected === correct ? '#08724d' : '#b42335';
+      $('options').querySelectorAll('button').forEach(x => x.classList.remove('selected'));
+        $('options').querySelectorAll('button').forEach(x => {
+          x.disabled = true;
+        });
+      btn.classList.add('selected');
     };
   });
 
