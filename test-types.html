@@ -1,10 +1,77 @@
 <!doctype html>
-<html lang="hi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>टेस्ट | गणित सेतु</title><link rel="stylesheet" href="assets/css/style.css"></head>
-<body><header class="simple-header"><a href="home.html">← होम</a><div class="mini-brand">📝 टेस्ट</div></header>
-<main class="page"><section class="panel"><h1>टेस्ट का प्रकार चुनें</h1><p class="muted">अपनी तैयारी के अनुसार टेस्ट चुनें</p>
-<div class="test-type-grid">
-<a href="course-test.html" class="type-card"><span>📚</span><h2>अध्याय-वार टेस्ट</h2><p>कक्षा में पढ़ाए गए अध्याय तक टेस्ट दें</p></a>
-<a href="chapter-test.html" class="type-card"><span>🎯</span><h2>अध्याय चुनकर टेस्ट</h2><p>अपनी पसंद का कोई भी अध्याय चुनें</p></a>
-<a href="daily-question.html" class="type-card"><span>✏️</span><h2>आज का सवाल</h2><p>हर दिन एक महत्वपूर्ण सवाल हल करें</p></a>
-</div></section></main></body></html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>टेस्ट दें | गणित सेतु</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<style>
+:root{--blue:#1268d6;--blue2:#eaf3ff;--text:#18324d;--muted:#6c7d90;--border:#dbe7f4}
+body{margin:0;background:#f5f9ff;color:var(--text);font-family:Arial,"Noto Sans Devanagari",sans-serif;padding-bottom:88px}
+.test-wrap{max-width:720px;margin:0 auto;padding:16px}
+.test-head{background:linear-gradient(135deg,#1268d6,#2486e8);color:#fff;border-radius:18px;padding:20px 18px;box-shadow:0 8px 22px rgba(18,104,214,.16)}
+.test-head h1{font-size:22px;margin:0 0 6px}.test-head p{margin:0;font-size:13px;opacity:.94}
+.test-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:16px;margin-top:14px;box-shadow:0 5px 18px rgba(20,60,100,.06)}
+.test-label{font-size:13px;font-weight:700;margin:0 0 12px}
+.test-type-list{display:grid;gap:10px}
+.type-card{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--text);background:#fff;border:1px solid var(--border);border-radius:13px;padding:13px;transition:transform .15s ease,box-shadow .15s ease}
+.type-card:active{transform:scale(.99)}
+.type-icon{width:42px;height:42px;flex:0 0 42px;border-radius:11px;background:var(--blue2);display:flex;align-items:center;justify-content:center;font-size:22px}
+.type-content{min-width:0;flex:1}.type-content h2{font-size:15px;margin:0 0 4px}.type-content p{font-size:12px;color:var(--muted);margin:0;line-height:1.45}
+.type-arrow{font-size:20px;color:var(--blue);font-weight:700}
+.bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:999;background:#fff;border-top:1px solid #dce7f2;box-shadow:0 -5px 18px rgba(20,60,100,.08);padding:7px 8px calc(7px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.bottom-nav a{text-decoration:none;color:#647487;text-align:center;font-size:11px;font-weight:700;padding:5px 2px;border-radius:11px;min-width:0}
+.bottom-nav a span{display:block;font-size:21px;line-height:23px;margin-bottom:2px}.bottom-nav a.active{color:var(--blue);background:#eef5ff}
+@media(max-width:380px){.test-wrap{padding:12px}.test-head h1{font-size:20px}.bottom-nav a{font-size:10px}.bottom-nav a span{font-size:19px}}
+</style>
+</head>
+<body>
+<main class="test-wrap">
+<section class="test-head">
+<h1>📝 टेस्ट दें</h1>
+<p>अपनी तैयारी के अनुसार टेस्ट चुनें</p>
+</section>
+
+<section class="test-card">
+<p class="test-label">📚 टेस्ट का प्रकार चुनें</p>
+<div class="test-type-list">
+
+<a href="course-test.html" class="type-card">
+<span class="type-icon">📚</span>
+<span class="type-content">
+<h2>अध्याय-वार टेस्ट</h2>
+<p>Chapter-wise Test</p>
+</span>
+<span class="type-arrow">›</span>
+</a>
+
+<a href="chapter-test.html" class="type-card">
+<span class="type-icon">🎯</span>
+<span class="type-content">
+<h2>अध्याय चुनकर टेस्ट</h2>
+<p>Chapter Selection Test</p>
+</span>
+<span class="type-arrow">›</span>
+</a>
+
+<a href="daily-question.html" class="type-card">
+<span class="type-icon">✏️</span>
+<span class="type-content">
+<h2>अभ्यास टेस्ट</h2>
+<p>Practice Test</p>
+</span>
+<span class="type-arrow">›</span>
+</a>
+
+</div>
+</section>
+</main>
+
+<nav class="bottom-nav">
+<a href="home.html"><span>🏠</span>होम</a>
+<a href="leaderboard.html"><span>🏆</span>रैंकिंग</a>
+<a href="pragati.html"><span>📈</span>प्रगति</a>
+<a href="profile.html"><span>👤</span>प्रोफाइल</a>
+</nav>
+</body>
+</html>
