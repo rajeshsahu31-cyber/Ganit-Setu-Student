@@ -112,61 +112,6 @@ body{padding-bottom:18px}
 
 
 </style>
-
-<style id="ganit-test-modern-ui">
-/* TEST TAKING UI ONLY — existing test.js/Supabase logic is untouched */
-:root{
- --quiz-purple:#5b43d6;--quiz-purple2:#8068f2;--quiz-bg:#f5f4fb;
- --quiz-text:#20243a;--quiz-muted:#70758a;--quiz-line:#e5e3ef;
-}
-.gs-test{background:var(--quiz-bg);padding:12px 10px 18px}
-.gs-test-top{background:linear-gradient(135deg,var(--quiz-purple),var(--quiz-purple2));color:#fff;border-radius:18px;padding:10px;gap:9px;margin-bottom:10px;box-shadow:0 5px 18px rgba(76,57,170,.18)}
-.gs-round-back{width:38px;height:38px;flex-basis:38px;border:0;background:#ffffff22;color:#fff;font-size:21px}
-.gs-test-heading h1{color:#fff;font-size:16px;line-height:1.25}
-.gs-test-heading p{color:#eeeaff;font-size:11px}
-.gs-timer{min-width:76px;background:#ffffff1f;border:1px solid #ffffff35;color:#fff;border-radius:12px;padding:6px 8px}
-.gs-timer small{font-size:9px}.gs-timer strong{font-size:14px}
-.gs-progress{border:0;border-radius:16px;padding:11px 12px;margin-bottom:10px;box-shadow:0 3px 12px rgba(30,25,70,.06)}
-.gs-progress-line{color:#5d6072;font-size:11px}
-.gs-progress-track{height:7px;background:#e9e7f3;margin-top:7px}
-.gs-progress-bar{background:linear-gradient(90deg,var(--quiz-purple),var(--quiz-purple2))}
-.gs-question{background:#fff;border:0;border-radius:19px;padding:15px 13px;box-shadow:0 5px 18px rgba(30,25,70,.07)}
-.gs-qhead{margin-bottom:10px}
-.gs-qbadge{background:#eeeaff;color:#5b43d6;border-radius:12px;padding:6px 10px;font-size:11px}
-.gs-mark{background:#f1effa;color:#666078;border-radius:11px;padding:6px 9px;font-size:11px}
-.gs-question-text{font-size:16px;line-height:1.65;color:var(--quiz-text);font-weight:700}
-.chapter-label{color:#6654c9;background:#f1efff;border-radius:9px;padding:4px 7px;margin-bottom:8px;font-size:11px}
-.gs-options{gap:8px;margin-top:12px}
-.option-btn{
- background:#fff;border:1.5px solid #dedce8;border-radius:13px;
- padding:10px 11px;color:#292d40;font:600 14px/1.5 "Noto Sans Devanagari",sans-serif;
- box-shadow:0 1px 4px rgba(30,25,70,.03)
-}
-.option-btn b{width:29px;height:29px;flex-basis:29px;background:#f0eef7;color:#5b43d6}
-.option-btn.selected{border-color:#6b55dc;background:#f1efff;box-shadow:0 0 0 1px #6b55dc18}
-.option-btn.selected b{background:#6b55dc;color:#fff}
-.answer-entry{margin-top:8px}
-.answer-label{display:block;font-size:12px;font-weight:700;color:#625d73;margin-bottom:5px}
-.problem-answer{width:100%;border:1.5px solid #dedce8;border-radius:13px;padding:12px;font-size:15px;outline:0;background:#fff}
-.problem-answer:focus{border-color:#6b55dc;box-shadow:0 0 0 3px #6b55dc15}
-.gs-nav{grid-template-columns:1fr 1.15fr;gap:8px;margin-top:10px}
-.gs-nav .outline-btn,.gs-nav .primary-btn{min-height:47px;border-radius:13px;font-size:13px}
-.gs-nav .outline-btn{background:#eeedf5;border-color:#dfdce9;color:#626074}
-.gs-nav .primary-btn{background:linear-gradient(135deg,var(--quiz-purple),var(--quiz-purple2))}
-.gs-foot-note{background:#f0eef9;color:#716d80;border-radius:11px;padding:8px;font-size:10px;margin-top:9px}
-@media(max-width:480px){
- .gs-test{padding:9px 8px 14px}
- .gs-test-top{border-radius:16px;padding:8px}
- .gs-test-heading h1{font-size:14px}
- .gs-timer{min-width:70px}.gs-timer strong{font-size:13px}
- .gs-progress{padding:9px 10px}
- .gs-question{padding:14px 11px}
- .gs-question-text{font-size:15px}
- .option-btn{font-size:13px;padding:9px}
- .gs-nav .outline-btn,.gs-nav .primary-btn{min-height:45px;font-size:12px}
-}
-</style>
-
 </head>
 <body>
 <header class="gs-header">
