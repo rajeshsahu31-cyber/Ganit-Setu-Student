@@ -178,7 +178,6 @@ function normalizeRpcRow(r){
   return {
     ...r,
     test_id:r.test_id || r.test_uuid || r.id_test || null,
-    attempt_id:r.attempt_id || r.test_attempt_id || r.attemptId || null,
     test_title:r.test_title || r.title || r.test_name || '',
     test_type:r.test_type || '',
     class_level:r.class_level ?? r.class_name ?? null,
@@ -356,56 +355,54 @@ async function openReview(index){
       return;
     }
 
-    // सबसे पहले Result में मौजूद exact attempt_id का उपयोग करें।
-    // अगर पुराने Result source में attempt_id नहीं है, तो चुनी हुई तारीख
-    // + student + test के आधार पर उसी दिन का attempt खोजें।
+    // Review को उसी चुनी हुई तारीख के EXACT attempt से जोड़ें।
+    // Results/RPC row में attempt_id न भी हो सकता है, इसलिए test_attempts से
+    // student + test + selected India date के आधार पर वास्तविक attempt निकालते हैं।
+    const selectedIso=document.getElementById('date').value;
+    const from=`${selectedIso}T00:00:00+05:30`;
+    const to=`${nextDate(selectedIso)}T00:00:00+05:30`;
+
     let attempt=null;
-    if(r.attempt_id){
+    if(r.attempt_id || r.attemptId){
       const {data,error}=await db.from('test_attempts')
-        .select('id,test_id,status,submitted_at,created_at')
-        .eq('id',r.attempt_id)
-        .eq('student_id',student.id)
-        .eq('test_id',testId)
+        .select('id,test_id,status,submitted_at')
+        .eq('id',Number(r.attempt_id || r.attemptId))
         .maybeSingle();
       if(error) throw error;
-      attempt=data;
+      if(data && String(data.student_id||student.id)===String(student.id)) attempt=data;
     }
 
-    if(!attempt?.id){
-      const iso=document.getElementById('date').value;
-      const from=`${iso}T00:00:00+05:30`, to=`${nextDate(iso)}T00:00:00+05:30`;
-      const {data,error}=await db.from('test_attempts')
-        .select('id,test_id,status,submitted_at,created_at')
+    if(!attempt){
+      const {data:attempts,error:attemptError}=await db.from('test_attempts')
+        .select('id,test_id,status,submitted_at,student_id')
         .eq('student_id',student.id)
         .eq('test_id',testId)
-        .gte('created_at',from)
-        .lt('created_at',to)
-        .order('created_at',{ascending:false})
-        .limit(1)
-        .maybeSingle();
-      if(error) throw error;
-      attempt=data;
-    }
-
-    // कुछ पुराने records में created_at/submitted_at में अंतर हो सकता है।
-    if(!attempt?.id){
-      const iso=document.getElementById('date').value;
-      const from=`${iso}T00:00:00+05:30`, to=`${nextDate(iso)}T00:00:00+05:30`;
-      const {data,error}=await db.from('test_attempts')
-        .select('id,test_id,status,submitted_at,created_at')
-        .eq('student_id',student.id)
-        .eq('test_id',testId)
+        .eq('status','submitted')
+        .not('submitted_at','is',null)
         .gte('submitted_at',from)
         .lt('submitted_at',to)
         .order('submitted_at',{ascending:false})
-        .limit(1)
-        .maybeSingle();
-      if(error) throw error;
-      attempt=data;
+        .limit(10);
+      if(attemptError) throw attemptError;
+      attempt=(attempts||[])[0]||null;
     }
 
     if(!attempt?.id){
-      qbox.innerHTML='<div class="empty">इस तारीख और Test के लिए submitted attempt नहीं मिला, इसलिए Review उपलब्ध नहीं है।</div>';
+      // अंतिम fallback: exact submitted_at date comparison in India timezone.
+      const {data:attempts,error:attemptError}=await db.from('test_attempts')
+        .select('id,test_id,status,submitted_at,student_id')
+        .eq('student_id',student.id)
+        .eq('test_id',testId)
+        .eq('status','submitted')
+        .not('submitted_at','is',null)
+        .order('submitted_at',{ascending:false})
+        .limit(50);
+      if(attemptError) throw attemptError;
+      attempt=(attempts||[]).find(a=>indiaDateOf(a.submitted_at)===selectedIso)||null;
+    }
+
+    if(!attempt?.id){
+      qbox.innerHTML=`<div class="empty">05/09/2026 जैसे चुने हुए दिन के Test का submitted attempt नहीं मिला।<br><small>Test ID: ${esc(String(testId))} • Student: ${esc(String(student.id))}</small></div>`;
       return;
     }
 
