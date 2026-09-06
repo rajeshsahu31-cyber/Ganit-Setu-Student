@@ -111,36 +111,28 @@ body{padding-bottom:18px}
 
 </style>
 
-<style id="gs-explanation-ui-final">
+<style id="gs-real-explanation-final-ui">
 .gs-explain-open{
-display:none;width:100%;margin:10px 0 0;padding:11px 13px;border:1px solid #d9d3f5;
-border-radius:12px;background:#f3f0ff;color:#513bbd;font:700 14px/1.5 "Noto Sans Devanagari",sans-serif
+ display:none;width:100%;margin:10px 0 0;padding:11px 13px;border:1px solid #d9d3f5;
+ border-radius:12px;background:#f3f0ff;color:#513bbd;
+ font:700 15px/1.5 "Noto Sans Devanagari",sans-serif;cursor:pointer;
 }
 .gs-explain-modal{position:fixed;inset:0;background:rgba(17,14,35,.42);display:none;
-align-items:flex-end;justify-content:flex-start;z-index:99999;padding:0 0 12px 12px}
+ align-items:flex-end;justify-content:flex-start;z-index:99999;padding:0 0 12px 12px}
 .gs-explain-modal.show{display:flex}
-.gs-explain-panel{width:min(92vw,560px);max-height:76vh;overflow:auto;background:#fff;border-radius:18px;
-box-shadow:0 14px 42px rgba(20,16,50,.25);padding:16px}
-.gs-explain-title{display:flex;justify-content:space-between;align-items:center;font:800 17px/1.4 "Noto Sans Devanagari",sans-serif;color:#33266f;margin-bottom:10px}
+.gs-explain-panel{width:min(92vw,560px);max-height:76vh;overflow:auto;background:#fff;
+ border-radius:18px;box-shadow:0 14px 42px rgba(20,16,50,.25);padding:16px}
+.gs-explain-title{display:flex;justify-content:space-between;align-items:center;
+ font:800 18px/1.4 "Noto Sans Devanagari",sans-serif;color:#33266f;margin-bottom:10px}
 .gs-explain-close{border:0;background:#eeeafa;color:#513bbd;border-radius:10px;width:35px;height:35px;font-size:21px}
-.gs-explain-body{font:500 16px/1.85 "Noto Sans Devanagari",sans-serif;color:#2d3040}
-.gs-question-text{font-size:18px!important;line-height:1.8!important}
-.option-btn{font-size:15px!important;line-height:1.7!important}
-@media(max-width:480px){.gs-question-text{font-size:17px!important}.option-btn{font-size:14.5px!important}.gs-explain-body{font-size:15px}}
+.gs-explain-body{font:500 16px/1.9 "Noto Sans Devanagari",sans-serif;color:#2d3040;white-space:pre-wrap}
+.gs-question-text{font-size:18px!important;line-height:1.85!important}
+.option-btn{font-size:15.5px!important;line-height:1.75!important}
+@media(max-width:480px){
+ .gs-question-text{font-size:17px!important}.option-btn{font-size:15px!important}
+ .gs-explain-body{font-size:15.5px;line-height:1.9}
+}
 </style>
-<script id="gs-explanation-ui-final">
-(function(){
- function init(){
-  if(document.getElementById('gsExplainModal')) return;
-  const m=document.createElement('div');m.id='gsExplainModal';m.className='gs-explain-modal';
-  m.innerHTML='<div class="gs-explain-panel"><div class="gs-explain-title"><span>💡 Explanation</span><button type="button" class="gs-explain-close">×</button></div><div id="gsExplainBody" class="gs-explain-body"></div></div>';
-  document.body.appendChild(m);
-  m.querySelector('.gs-explain-close').onclick=()=>m.classList.remove('show');
-  m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show')});
- }
- if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
-})();
-</script>
 </head>
 <body>
 <header class="gs-header">
@@ -207,6 +199,14 @@ box-shadow:0 14px 42px rgba(20,16,50,.25);padding:16px}
         <div class="gs-qhead"><span class="gs-qbadge" id="questionBadge">प्रश्न 1</span><span class="gs-mark">1 अंक</span></div>
         <div class="gs-question-text" id="questionText"></div>
         <div class="gs-options" id="options"></div>
+<button type="button" id="explainButton" class="gs-explain-open">💡 Explanation देखें</button>
+<div id="explainModal" class="gs-explain-modal" aria-hidden="true">
+ <div class="gs-explain-panel" role="dialog" aria-modal="true">
+  <div class="gs-explain-title"><span>💡 Explanation</span><button type="button" id="explainClose" class="gs-explain-close">×</button></div>
+  <div id="explainBody" class="gs-explain-body"></div>
+ </div>
+</div>
+
       </div>
 
       <div class="gs-nav">
