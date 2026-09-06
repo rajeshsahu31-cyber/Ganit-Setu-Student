@@ -110,9 +110,56 @@ function renderResult(row) {
 }
 
 let todayRows=[];
+let chapterRows=[];
+
+function chapterNumber(row) {
+  const direct = Number(row?.chapter_from ?? row?.chapter_number);
+  if (Number.isFinite(direct) && direct > 0) return direct;
+
+  const text = String(row?.test_title || row?.title || '');
+  const m = text.match(/chapter\\s*(?:test\\s*)?(?:class\\s*9|class\\s*10)?\\s*chapter\\s*(\\d+)/i);
+  if (m) return Number(m[1]);
+
+  const range = text.match(/chapter\\s*(\\d+)\\s*-\\s*(\\d+)/i);
+  return range ? Number(range[1]) : 999999;
+}
+
+function renderChapterResults(rows) {
+  const box=document.getElementById('resultList');
+
+  if(!rows.length) {
+    renderEmpty('chapter_practice');
+    return;
+  }
+
+  box.innerHTML=rows.map(row=>`
+    <div class="today-result">
+      <div class="today-title">
+        <div>
+          <b>${escapeHtml(testLabel(row))}</b>
+          <div class="today-meta">कक्षा ${escapeHtml(row.class_level ?? '—')} • ${escapeHtml(formatDateTime(row.submitted_at))}</div>
+        </div>
+        <div class="today-score">${escapeHtml(row.score)}/${escapeHtml(row.total_marks)}</div>
+      </div>
+      <div class="today-stats">
+        <div class="today-stat"><b>${escapeHtml(row.score)}</b><small>अंक</small></div>
+        <div class="today-stat"><b>${escapeHtml(row.correct_answers)}</b><small>सही</small></div>
+        <div class="today-stat"><b>${escapeHtml(Number(row.percentage).toFixed(1))}%</b><small>प्रतिशत</small></div>
+        <div class="today-stat"><b>${escapeHtml(formatDuration(row.time_taken_seconds))}</b><small>समय</small></div>
+      </div>
+    </div>`).join('');
+}
 
 function showSelectedTest() {
   const type=document.getElementById('testSelect').value;
+
+  // ONLY Chapter Test shows all submitted Chapter Test records.
+  // Other test types keep the existing "today's result" behavior.
+  if(type === 'chapter_practice') {
+    renderChapterResults(chapterRows);
+    return;
+  }
+
   const row=todayRows.find(r=>String(r.test_type||'').toLowerCase()===type);
   if(row) renderResult(row);
   else renderEmpty(type);
@@ -138,11 +185,24 @@ async function loadResults() {
 
   // Keep the existing live RPC connection; only today's India-date records are used here.
   const today=indiaToday();
-  todayRows=(Array.isArray(data)?data:[])
+  const allRows=(Array.isArray(data)?data:[])
     .map(normalizeRpcRow)
+    .filter(r=>['course_progress','chapter_practice','daily'].includes(String(r.test_type||'').toLowerCase()));
+
+  // Existing behavior for Course Test and Practice Test: today's records only.
+  todayRows=allRows
     .filter(r=>indiaDateOf(r.submitted_at)===today)
-    .filter(r=>['course_progress','chapter_practice','daily'].includes(String(r.test_type||'').toLowerCase()))
     .sort((a,b)=>testRank(a)-testRank(b));
+
+  // Chapter Test: all submitted records, ordered by chapter number.
+  // Time is used only as a tie-breaker when two records belong to the same chapter.
+  chapterRows=allRows
+    .filter(r=>String(r.test_type||'').toLowerCase()==='chapter_practice')
+    .sort((a,b)=>{
+      const ca=chapterNumber(a), cb=chapterNumber(b);
+      if(ca!==cb) return ca-cb;
+      return new Date(a.submitted_at||0)-new Date(b.submitted_at||0);
+    });
 
   showSelectedTest();
 }
