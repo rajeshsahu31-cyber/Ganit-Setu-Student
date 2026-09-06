@@ -34,7 +34,7 @@ let startedAt = 0, timerHandle = null, currentTestMeta = null, currentLockedTest
 async function loadQuestions(classLevel, chapterNumber = null) {
   let q = supabaseClient
     .from('questions')
-    .select('id,class_level,chapter_number,chapter_name,question_text,option_a,option_b,option_c,option_d,correct_option,explanation')
+    .select('id,class_level,chapter_number,chapter_name,question_text,option_a,option_b,option_c,option_d,correct_option,explanation,hint')
     .eq('class_level', classLevel)
     .eq('status', 'active')
     .order('id', { ascending: true });
@@ -47,17 +47,29 @@ async function loadQuestions(classLevel, chapterNumber = null) {
 }
 
 function setupExplanation() {
-  const btn = $('explainButton'), modal = $('explainModal'), body = $('explainBody'), close = $('explainClose');
-  if (!btn || !modal || !body || !close || btn.dataset.ready) return;
-  btn.dataset.ready='1';
-  btn.addEventListener('click',()=>{
-    const text=btn.dataset.explanation||'';
-    if(!text) return;
-    body.textContent=text;
+  const btn = $('explainButton'), hint = $('gsHintFlash');
+  const modal = $('explainModal'), body = $('explainBody'), close = $('explainClose');
+  if (!modal || !body || !close) return;
+  const open = (title, text) => {
+    if (!text) return;
+    const titleEl = modal.querySelector('.gs-explain-title span');
+    if (titleEl) titleEl.textContent = title;
+    body.textContent = text;
     modal.classList.add('show');
-  });
-  close.addEventListener('click',()=>modal.classList.remove('show'));
-  modal.addEventListener('click',e=>{if(e.target===modal)modal.classList.remove('show')});
+  };
+  if (btn && !btn.dataset.ready) {
+    btn.dataset.ready='1';
+    btn.addEventListener('click',()=>open('💡 Explanation',btn.dataset.explanation||''));
+  }
+  if (hint && !hint.dataset.ready) {
+    hint.dataset.ready='1';
+    hint.addEventListener('click',()=>open('💡 Hint',hint.dataset.hint||''));
+  }
+  if (!close.dataset.ready) {
+    close.dataset.ready='1';
+    close.addEventListener('click',()=>modal.classList.remove('show'));
+    modal.addEventListener('click',e=>{if(e.target===modal)modal.classList.remove('show')});
+  }
 }
 function startTimer() {
   const timer = $('timer');
@@ -74,10 +86,21 @@ function startTimer() {
 
 function renderExplanationButton(q) {
   const btn = $('explainButton');
+  const hintBtn = $('hintButton');
+  if (btn) {
+    btn.dataset.explanation = String(q?.explanation || '').trim();
+    btn.style.display = 'none'; // केवल उत्तर देने के बाद दिखेगा
+  }
+  if (hintBtn) {
+    hintBtn.dataset.hint = String(q?.hint || '').trim();
+    hintBtn.style.display = q?.hint ? 'block' : 'none'; // Hint पहले से उपलब्ध
+  }
+}
+
+function showExplanationAfterAnswer() {
+  const btn = $('explainButton');
   if (!btn) return;
-  const explanation = String(q?.explanation || '').trim();
-  btn.dataset.explanation = explanation;
-  btn.style.display = explanation ? 'block' : 'none';
+  btn.style.display = btn.dataset.explanation ? 'block' : 'none';
 }
 function renderQuestion() {
   const q = questions[currentIndex];
@@ -112,6 +135,7 @@ function renderQuestion() {
       input.addEventListener('input', () => {
         const arr = Array.from($('options').querySelectorAll('.problem-answer')).map(x => x.value.trim());
         answers[currentIndex] = arr;
+        if (arr.some(v => String(v || '').trim())) showExplanationAfterAnswer();
       });
     });
     $('nextQuestion').textContent =
@@ -130,6 +154,7 @@ function renderQuestion() {
   $('options').querySelectorAll('button').forEach(btn => {
     btn.onclick = () => {
       answers[currentIndex] = btn.dataset.option;
+      showExplanationAfterAnswer();
       $('options').querySelectorAll('button').forEach(x => x.classList.remove('selected'));
       btn.classList.add('selected');
     };
