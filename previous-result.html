@@ -228,7 +228,7 @@ async function loadFromAttemptTables(db, iso, student){
     const tc=normalizeClass(t.class_level);
     if(tc && cls && tc!==cls) return null;
     return normalizeRpcRow({
-      ...a,attempt_id:a.id,test_id:a.test_id,test_title:t.title,test_type:t.test_type,class_level:t.class_level,
+      ...a,test_id:a.test_id,test_title:t.title,test_type:t.test_type,class_level:t.class_level,
       submitted_at:a.submitted_at,total_marks:t.total_marks || t.total_questions,total_questions:t.total_questions
     });
   }).filter(Boolean);
@@ -355,54 +355,22 @@ async function openReview(index){
       return;
     }
 
-    // Review को उसी चुनी हुई तारीख के EXACT attempt से जोड़ें।
-    // Results/RPC row में attempt_id न भी हो सकता है, इसलिए test_attempts से
-    // student + test + selected India date के आधार पर वास्तविक attempt निकालते हैं।
-    const selectedIso=document.getElementById('date').value;
-    const from=`${selectedIso}T00:00:00+05:30`;
-    const to=`${nextDate(selectedIso)}T00:00:00+05:30`;
+    // IMPORTANT: the date shown in Previous Result is the TEST/RESULT date.
+    // A student can submit the test after midnight, so submitted_at may belong
+    // to the next calendar day. Do NOT filter the attempt by the selected date.
+    // In this schema test_attempts is unique per (student_id, test_id), so the
+    // exact attempt is identified safely by student + test.
+    const {data:attempt,error:attemptError}=await db.from('test_attempts')
+      .select('id,test_id,status,submitted_at')
+      .eq('student_id',student.id)
+      .eq('test_id',testId)
+      .eq('status','submitted')
+      .not('submitted_at','is',null)
+      .maybeSingle();
 
-    let attempt=null;
-    if(r.attempt_id || r.attemptId){
-      const {data,error}=await db.from('test_attempts')
-        .select('id,test_id,status,submitted_at')
-        .eq('id',Number(r.attempt_id || r.attemptId))
-        .maybeSingle();
-      if(error) throw error;
-      if(data && String(data.student_id||student.id)===String(student.id)) attempt=data;
-    }
-
-    if(!attempt){
-      const {data:attempts,error:attemptError}=await db.from('test_attempts')
-        .select('id,test_id,status,submitted_at,student_id')
-        .eq('student_id',student.id)
-        .eq('test_id',testId)
-        .eq('status','submitted')
-        .not('submitted_at','is',null)
-        .gte('submitted_at',from)
-        .lt('submitted_at',to)
-        .order('submitted_at',{ascending:false})
-        .limit(10);
-      if(attemptError) throw attemptError;
-      attempt=(attempts||[])[0]||null;
-    }
-
+    if(attemptError) throw attemptError;
     if(!attempt?.id){
-      // अंतिम fallback: exact submitted_at date comparison in India timezone.
-      const {data:attempts,error:attemptError}=await db.from('test_attempts')
-        .select('id,test_id,status,submitted_at,student_id')
-        .eq('student_id',student.id)
-        .eq('test_id',testId)
-        .eq('status','submitted')
-        .not('submitted_at','is',null)
-        .order('submitted_at',{ascending:false})
-        .limit(50);
-      if(attemptError) throw attemptError;
-      attempt=(attempts||[]).find(a=>indiaDateOf(a.submitted_at)===selectedIso)||null;
-    }
-
-    if(!attempt?.id){
-      qbox.innerHTML=`<div class="empty">05/09/2026 जैसे चुने हुए दिन के Test का submitted attempt नहीं मिला।<br><small>Test ID: ${esc(String(testId))} • Student: ${esc(String(student.id))}</small></div>`;
+      qbox.innerHTML='<div class="empty">इस Test का submitted attempt नहीं मिला, इसलिए Review उपलब्ध नहीं है।</div>';
       return;
     }
 
