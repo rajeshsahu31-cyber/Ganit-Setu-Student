@@ -124,6 +124,8 @@ function renderQuestion() {
 
   setupQuestionHelp();
   refreshQuestionHelp(q);
+  const feedback = $('answerFeedback');
+  if (feedback) { feedback.textContent = ''; feedback.removeAttribute('style'); }
 
   $('questionNo').textContent = `प्रश्न ${currentIndex + 1} / ${questions.length}`;
   $('questionText').innerHTML =
@@ -171,9 +173,33 @@ function renderQuestion() {
 
   $('options').querySelectorAll('button').forEach(btn => {
     btn.onclick = () => {
+      // One final answer per question: once selected, all options lock.
+      if (answers[currentIndex] !== undefined && answers[currentIndex] !== null && answers[currentIndex] !== '') return;
+
       answers[currentIndex] = btn.dataset.option;
       showExplanationAfterAnswer();
-      $('options').querySelectorAll('button').forEach(x => x.classList.remove('selected'));
+
+      const selected = btn.dataset.option;
+      const correct = String(q.correct_option || '').trim().toUpperCase();
+      const optionButtons = $('options').querySelectorAll('button');
+
+      optionButtons.forEach(x => {
+        x.disabled = true;
+        x.classList.remove('selected');
+        const opt = String(x.dataset.option || '').trim().toUpperCase();
+
+        if (opt === correct) {
+          x.classList.add('answer-correct');
+        } else if (opt === selected && selected.toUpperCase() !== correct) {
+          x.classList.add('answer-wrong');
+        }
+      });
+
+      const feedback = $('answerFeedback');
+      if (feedback) {
+        feedback.textContent = selected.toUpperCase() === correct ? '✓ सही उत्तर' : '✕ गलत उत्तर';
+        feedback.style.color = selected.toUpperCase() === correct ? '#08724d' : '#b42335';
+      }
       btn.classList.add('selected');
     };
   });
