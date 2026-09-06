@@ -182,6 +182,7 @@ function normalizeRpcRow(r){
     test_type:r.test_type || '',
     class_level:r.class_level ?? r.class_name ?? null,
     submitted_at:submitted,
+    attempt_id:r.attempt_id || r.attempt_id_value || r.id_attempt || null,
     score:Number(r.score ?? r.correct_answers ?? 0),
     total_marks:Number(r.total_marks ?? r.total_questions ?? 0),
     correct_answers:Number(r.correct_answers ?? r.score ?? 0),
@@ -229,6 +230,7 @@ async function loadFromAttemptTables(db, iso, student){
     if(tc && cls && tc!==cls) return null;
     return normalizeRpcRow({
       ...a,test_id:a.test_id,test_title:t.title,test_type:t.test_type,class_level:t.class_level,
+      attempt_id:a.id,
       submitted_at:a.submitted_at,total_marks:t.total_marks || t.total_questions,total_questions:t.total_questions
     });
   }).filter(Boolean);
@@ -355,47 +357,61 @@ async function openReview(index){
       return;
     }
 
-    // पहले इसी student + इसी test का वास्तविक submitted attempt निकालें।
-    // student_answers में student_id/test_id नहीं होते; answers attempt_id से जुड़े हैं।
-    // चुनी हुई तारीख वाले इसी Test का attempt लें।
-    // पहले date-range query करें ताकि किसी दूसरी तारीख का latest attempt
-    // गलती से Review में न खुल जाए।
-    const selectedIso = document.getElementById('date').value;
-    const from = `${selectedIso}T00:00:00+05:30`;
-    const to = `${nextDate(selectedIso)}T00:00:00+05:30`;
+    // Review हमेशा चुने हुए Result के exact attempt से खुलेगा।
+    // पहले से उपलब्ध attempt_id हो तो उसी को सीधे इस्तेमाल करें।
+    let attempt=null;
+    if(r.attempt_id){
+      const {data,error}=await db.from('test_attempts')
+        .select('id,test_id,status,submitted_at')
+        .eq('id',r.attempt_id)
+        .eq('student_id',student.id)
+        .eq('test_id',testId)
+        .maybeSingle();
+      if(error) throw error;
+      attempt=data;
+    }
 
-    let {data:attempts,error:attemptError}=await db.from('test_attempts')
-      .select('id,test_id,status,submitted_at')
-      .eq('student_id',student.id)
-      .eq('test_id',testId)
-      .eq('status','submitted')
-      .not('submitted_at','is',null)
-      .gte('submitted_at',from)
-      .lt('submitted_at',to)
-      .order('submitted_at',{ascending:false})
-      .limit(10);
-
-    if(attemptError) throw attemptError;
-
-    // कुछ पुराने records में timezone/date filtering अलग format में हो सकती है।
-    // इसलिए safe fallback के रूप में उसी Test के submitted attempts में
-    // India-date match करें।
-    let attempt = (attempts || [])[0] || null;
-    if(!attempt){
-      const fallback = await db.from('test_attempts')
+    // RPC/पुराने result source में attempt_id न हो तो उसी Result के submitted_at
+    // से exact attempt खोजें — latest attempt नहीं।
+    if(!attempt?.id && r.submitted_at){
+      const {data,error}=await db.from('test_attempts')
         .select('id,test_id,status,submitted_at')
         .eq('student_id',student.id)
         .eq('test_id',testId)
         .eq('status','submitted')
         .not('submitted_at','is',null)
-        .order('submitted_at',{ascending:false})
-        .limit(50);
-      if(fallback.error) throw fallback.error;
-      attempt = (fallback.data || []).find(a => indiaDateOf(a.submitted_at) === selectedIso) || null;
+        .eq('submitted_at',r.submitted_at)
+        .limit(1)
+        .maybeSingle();
+      if(error) throw error;
+      attempt=data;
+    }
+
+    // अंतिम fallback: उसी दिन के matching attempts में Result के समय के सबसे
+    // नजदीक वाला attempt चुनें।
+    if(!attempt?.id && r.submitted_at){
+      const d=new Date(r.submitted_at);
+      const dayStart=new Date(d); dayStart.setHours(0,0,0,0);
+      const dayEnd=new Date(dayStart); dayEnd.setDate(dayEnd.getDate()+1);
+      const {data,error}=await db.from('test_attempts')
+        .select('id,test_id,status,submitted_at')
+        .eq('student_id',student.id)
+        .eq('test_id',testId)
+        .eq('status','submitted')
+        .not('submitted_at','is',null)
+        .gte('submitted_at',dayStart.toISOString())
+        .lt('submitted_at',dayEnd.toISOString())
+        .order('submitted_at',{ascending:false});
+      if(error) throw error;
+      if(data?.length){
+        attempt=data.reduce((best,x)=>
+          !best || Math.abs(new Date(x.submitted_at)-d)<Math.abs(new Date(best.submitted_at)-d) ? x : best
+        ,null);
+      }
     }
 
     if(!attempt?.id){
-      qbox.innerHTML='<div class="empty">इस चुनी हुई तारीख के Test का submitted attempt नहीं मिला, इसलिए Review उपलब्ध नहीं है।</div>';
+      qbox.innerHTML='<div class="empty">इस Result का exact submitted attempt नहीं मिला, इसलिए Review उपलब्ध नहीं है।</div>';
       return;
     }
 
@@ -419,10 +435,7 @@ async function openReview(index){
     // fallback: अगर पुराने test में mapping न हो, तो उसी attempt के answer question IDs।
     let orderedIds=tq.map(x=>x.question_id).filter(Boolean);
     if(!orderedIds.length){
-      // पुराने attempts में test_questions mapping न होने पर
-      // student_answers के question_id से questions निकालें।
-      // ID numeric हो या UUID/string, दोनों को सुरक्षित रखें।
-      orderedIds=[...(answers.keys())].filter(Boolean);
+      orderedIds=[...(answers.keys())].map(Number).filter(Number.isFinite);
     }
 
     if(!orderedIds.length){
