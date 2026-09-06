@@ -2,6 +2,12 @@
 // Clean replacement: all three tests + Supabase save
 
 const $ = id => document.getElementById(id);
+
+(function addAnswerLockStyles(){
+  const style = document.createElement('style');
+  style.textContent = '.option-btn.answer-correct{border-color:#16a56f!important;background:#e9f9f1!important;color:#08724d!important}.option-btn.answer-wrong{border-color:#e05263!important;background:#fff0f2!important;color:#b42335!important}.option-btn:disabled{cursor:default!important;opacity:1!important}';
+  document.head.appendChild(style);
+})();
 const MAX_CHAPTERS = { 9: 12, 10: 14 };
 const DAILY_QUESTION_COUNT = 5;
 
@@ -118,24 +124,10 @@ function showExplanationAfterAnswer() {
   btn.style.display = btn.dataset.explanation ? 'inline-flex' : 'none';
 }
 
-function ensureAnswerFeedbackStyle() {
-  if ($('gsAnswerLockStyle')) return;
-  const style = document.createElement('style');
-  style.id = 'gsAnswerLockStyle';
-  style.textContent = `
-    .option-btn.answer-correct{border-color:#16a56f!important;background:#e9f9f1!important;color:#08724d!important}
-    .option-btn.answer-wrong{border-color:#e05263!important;background:#fff0f2!important;color:#b42335!important}
-    .option-btn:disabled{cursor:default!important;opacity:1!important}
-    #answerFeedback{min-height:20px;margin:4px 2px 0;text-align:center;font-weight:700;font-size:13px}
-  `;
-  document.head.appendChild(style);
-}
-
 function renderQuestion() {
   const q = questions[currentIndex];
   if (!q) return;
 
-  ensureAnswerFeedbackStyle();
   setupQuestionHelp();
   refreshQuestionHelp(q);
 
@@ -183,36 +175,45 @@ function renderQuestion() {
     </button>`
   ).join('');
 
-  $('options').querySelectorAll('button').forEach(btn => {
-    btn.onclick = () => {
-      // FINAL ANSWER LOCK: once an option is selected, this question cannot be changed.
-      if (answers[currentIndex] !== null && answers[currentIndex] !== undefined && answers[currentIndex] !== '') return;
+  const optionButtons = $('options').querySelectorAll('button');
+  const savedAnswer = answers[currentIndex];
 
-      answers[currentIndex] = btn.dataset.option;
-      showExplanationAfterAnswer();
+  // If this question was already answered, keep it locked.
+  if (savedAnswer) {
+    optionButtons.forEach(x => {
+      x.disabled = true;
+      if (x.dataset.option === savedAnswer) x.classList.add('selected');
+    });
+    showExplanationAfterAnswer();
+  }
+
+  optionButtons.forEach(btn => {
+    btn.onclick = () => {
+      // One answer only. A second option cannot be selected.
+      if (answers[currentIndex]) return;
 
       const selected = String(btn.dataset.option || '').trim().toUpperCase();
       const correct = String(q.correct_option || '').trim().toUpperCase();
-      const optionButtons = $('options').querySelectorAll('button');
+      answers[currentIndex] = btn.dataset.option;
+      showExplanationAfterAnswer();
 
       optionButtons.forEach(x => {
         x.disabled = true;
         x.classList.remove('selected');
         const opt = String(x.dataset.option || '').trim().toUpperCase();
-
-        if (opt === correct) {
-          x.classList.add('answer-correct');
-        } else if (opt === selected && selected !== correct) {
-          x.classList.add('answer-wrong');
-        }
+        if (opt === correct) x.classList.add('answer-correct');
+        if (opt === selected && selected !== correct) x.classList.add('answer-wrong');
       });
 
-      const feedback = $('answerFeedback');
-      if (feedback) {
-        feedback.textContent = selected === correct ? '✓ सही उत्तर' : '✕ गलत उत्तर';
-        feedback.style.color = selected === correct ? '#08724d' : '#b42335';
+      let feedback = $('answerFeedback');
+      if (!feedback) {
+        feedback = document.createElement('div');
+        feedback.id = 'answerFeedback';
+        feedback.style.cssText = 'text-align:center;min-height:20px;margin:4px 0;font-weight:700;font-size:13px;';
+        $('options').insertAdjacentElement('afterend', feedback);
       }
-      btn.classList.add('selected');
+      feedback.textContent = selected === correct ? '✓ सही उत्तर' : '✕ गलत उत्तर';
+      feedback.style.color = selected === correct ? '#08724d' : '#b42335';
     };
   });
 
