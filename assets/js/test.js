@@ -34,7 +34,7 @@ let startedAt = 0, timerHandle = null, currentTestMeta = null, currentLockedTest
 async function loadQuestions(classLevel, chapterNumber = null) {
   let q = supabaseClient
     .from('questions')
-    .select('id,class_level,chapter_number,chapter_name,question_text,option_a,option_b,option_c,option_d,correct_option')
+    .select('id,class_level,chapter_number,chapter_name,question_text,option_a,option_b,option_c,option_d,correct_option,explanation')
     .eq('class_level', classLevel)
     .eq('status', 'active')
     .order('id', { ascending: true });
@@ -46,6 +46,19 @@ async function loadQuestions(classLevel, chapterNumber = null) {
   return data || [];
 }
 
+function setupExplanation() {
+  const btn = $('explainButton'), modal = $('explainModal'), body = $('explainBody'), close = $('explainClose');
+  if (!btn || !modal || !body || !close || btn.dataset.ready) return;
+  btn.dataset.ready='1';
+  btn.addEventListener('click',()=>{
+    const text=btn.dataset.explanation||'';
+    if(!text) return;
+    body.textContent=text;
+    modal.classList.add('show');
+  });
+  close.addEventListener('click',()=>modal.classList.remove('show'));
+  modal.addEventListener('click',e=>{if(e.target===modal)modal.classList.remove('show')});
+}
 function startTimer() {
   const timer = $('timer');
   if (!timer) return;
@@ -59,9 +72,17 @@ function startTimer() {
   }, 1000);
 }
 
+function renderExplanationButton(q) {
+  const btn = $('explainButton');
+  if (!btn) return;
+  const explanation = String(q?.explanation || '').trim();
+  btn.dataset.explanation = explanation;
+  btn.style.display = explanation ? 'block' : 'none';
+}
 function renderQuestion() {
   const q = questions[currentIndex];
   if (!q) return;
+  renderExplanationButton(q);
 
   $('questionNo').textContent = `प्रश्न ${currentIndex + 1} / ${questions.length}`;
   $('questionText').innerHTML =
@@ -565,3 +586,6 @@ document.addEventListener('DOMContentLoaded', () => {
   setupChapterTest();
   setupDailyTest();
 });
+
+
+document.addEventListener('DOMContentLoaded', setupExplanation);
