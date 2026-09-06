@@ -107,7 +107,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const errorBox = document.getElementById('cameraError');
       if (errorBox) {
         if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
-          errorBox.textContent = 'Camera permission बंद है। Browser में इस site के लिए Camera → Allow करें और फिर दोबारा कोशिश करें।';
+          showCameraPermissionPopup();
         } else if (error.name === 'NotFoundError') {
           errorBox.textContent = 'इस device में camera नहीं मिला। Gallery से फोटो चुनें।';
         } else {
@@ -118,6 +118,67 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       if (cameraStream) { cameraStream.getTracks().forEach(track => track.stop()); cameraStream = null; }
     }
+  }
+
+  function showCameraPermissionPopup() {
+    const old = document.getElementById('cameraPermissionPopup');
+    if (old) old.remove();
+
+    const popup = document.createElement('div');
+    popup.id = 'cameraPermissionPopup';
+    popup.innerHTML = `
+      <div class="cpp-overlay">
+        <div class="cpp-card">
+          <div class="cpp-icon">📷</div>
+          <div class="cpp-title">Camera Permission जरूरी है</div>
+          <div class="cpp-text">
+            Camera बंद है। नीचे <b>Permission खोलें</b> दबाएँ और इस site के लिए Camera को <b>Allow</b> करें।
+          </div>
+          <div class="cpp-actions">
+            <button type="button" id="cppOpen" class="cpp-primary">🔓 Permission खोलें</button>
+            <button type="button" id="cppRetry" class="cpp-retry">🔄 फिर से कोशिश करें</button>
+            <button type="button" id="cppClose" class="cpp-cancel">रद्द करें</button>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(popup);
+
+    const styleId = 'cameraPermissionPopupStyle';
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement('style');
+      style.id = styleId;
+      style.textContent = `
+        #cameraPermissionPopup .cpp-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:18px;z-index:110000}
+        #cameraPermissionPopup .cpp-card{width:min(410px,94vw);background:#fff;border-radius:20px;padding:20px;box-shadow:0 18px 55px rgba(0,0,0,.35);text-align:center}
+        #cameraPermissionPopup .cpp-icon{font-size:42px;margin-bottom:5px}
+        #cameraPermissionPopup .cpp-title{font-size:19px;font-weight:800;color:#145d76;margin-bottom:8px}
+        #cameraPermissionPopup .cpp-text{font-size:14px;line-height:1.55;color:#374151;margin-bottom:14px}
+        #cameraPermissionPopup button{width:100%;border:0;border-radius:12px;padding:12px 10px;margin-top:7px;font-weight:800;font-size:14px;cursor:pointer}
+        #cameraPermissionPopup .cpp-primary{background:#145d76;color:#fff}
+        #cameraPermissionPopup .cpp-retry{background:#e8f3f7;color:#145d76}
+        #cameraPermissionPopup .cpp-cancel{background:#f1f3f5;color:#374151}
+      `;
+      document.head.appendChild(style);
+    }
+
+    document.getElementById('cppClose').onclick = () => popup.remove();
+    document.getElementById('cppRetry').onclick = async () => {
+      popup.remove();
+      await openCamera();
+    };
+    document.getElementById('cppOpen').onclick = () => {
+      // Browsers do not expose a universal web API for opening a site's
+      // permission page. Chrome's camera settings page is the best-effort
+      // destination; if the browser blocks it, the user can use Retry.
+      const ua = navigator.userAgent || '';
+      const isChrome = /Chrome|CriOS/i.test(ua) && !/Edg|OPR/i.test(ua);
+      if (isChrome) {
+        try { window.location.href = 'chrome://settings/content/camera'; }
+        catch (_) { window.open('chrome://settings/content/camera', '_blank'); }
+      } else {
+        popup.querySelector('.cpp-text').innerHTML = 'इस browser में site permission settings सीधे नहीं खोली जा सकतीं। Browser Settings → Site Settings → Camera में जाकर इस site को <b>Allow</b> करें, फिर <b>फिर से कोशिश करें</b> दबाएँ।';
+      }
+    };
   }
 
   function ensureCameraGalleryChooser() {
