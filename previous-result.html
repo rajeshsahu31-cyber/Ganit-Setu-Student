@@ -228,15 +228,8 @@ async function loadFromAttemptTables(db, iso, student){
     const tc=normalizeClass(t.class_level);
     if(tc && cls && tc!==cls) return null;
     return normalizeRpcRow({
-      ...a,
-      attempt_id:a.id,
-      test_id:a.test_id,
-      test_title:t.title,
-      test_type:t.test_type,
-      class_level:t.class_level,
-      submitted_at:a.submitted_at,
-      total_marks:t.total_marks || t.total_questions,
-      total_questions:t.total_questions
+      ...a,test_id:a.test_id,test_title:t.title,test_type:t.test_type,class_level:t.class_level,
+      submitted_at:a.submitted_at,total_marks:t.total_marks || t.total_questions,total_questions:t.total_questions
     });
   }).filter(Boolean);
 }
@@ -343,106 +336,45 @@ async function openReview(index){
   const review=document.getElementById('review'), qbox=document.getElementById('questions');
   qbox.innerHTML='<div class="empty">☁️ प्रश्नपत्र लोड हो रहा है...</div>';
   review.classList.add('show'); review.scrollIntoView({behavior:'smooth',block:'start'});
-
   try{
     const student=await getStudent();
+    const testId=await resolveTestId(db,r,student);
+    const attemptId=Number(r.attempt_id || r.id || 0);
+    const total=Number(r.total_marks||r.total_questions||0), score=Number(r.score??r.correct_answers??0);
+    document.getElementById('reviewMeta').innerHTML=`<b>${esc(testLabel(r))}</b><br>तारीख: ${formatDMY(document.getElementById('date').value)} &nbsp; | &nbsp; अंक: <b>${score}/${total}</b>`;
+    if(!testId){ qbox.innerHTML='<div class="empty">इस Result का test ID नहीं मिला, इसलिए प्रश्नपत्र Review उपलब्ध नहीं है।</div>'; return; }
+    if(!attemptId){ qbox.innerHTML='<div class="empty">इस Result का attempt ID नहीं मिला, इसलिए आपके उत्तर Review नहीं किए जा सकते।</div>'; return; }
 
-    // Previous-result records may come from the RPC or the attempt table.
-    // Resolve the exact attempt first, then use attempt_id for student_answers.
-    let attemptId = r.attempt_id || r.attemptId || null;
-    let testId = r.test_id || null;
-
-    if(!attemptId && testId){
-      const {data:attempt,error:attemptError}=await db.from('test_attempts')
-        .select('id,test_id,submitted_at')
-        .eq('student_id',student.id)
-        .eq('test_id',testId)
-        .not('submitted_at','is',null)
-        .limit(1)
-        .maybeSingle();
-      if(attemptError) throw attemptError;
-      if(attempt) attemptId=attempt.id;
+    // Questions belong to the test; the student's answers belong to the exact attempt.
+    // Do not query student_id/test_id/time_taken_seconds from student_answers because those columns do not exist.
+    const [tqRes,ansRes]=await Promise.all([
+      db.from('test_questions').select('question_id,question_order').eq('test_id',testId).order('question_order',{ascending:true}),
+      db.from('student_answers').select('question_id,selected_option,is_correct,answered_at').eq('attempt_id',attemptId)
+    ]);
+    if(tqRes.error) throw tqRes.error;
+    if(ansRes.error) throw ansRes.error;
+    const tq=tqRes.data||[];
+    const answers=new Map((ansRes.data||[]).map(a=>[String(a.question_id),a]));
+    const ids=tq.map(x=>x.question_id);
+    let questions=[];
+    if(ids.length){
+      const qRes=await db.from('questions').select('id,question_text,option_a,option_b,option_c,option_d,correct_option,chapter_number,chapter_name,explanation,hint,marks').in('id',ids);
+      if(qRes.error) throw qRes.error;
+      const byId=new Map((qRes.data||[]).map(q=>[String(q.id),q]));
+      questions=tq.map(x=>byId.get(String(x.question_id))).filter(Boolean);
     }
-
-    // If the result source did not provide test_id, resolve it from the test title/date.
-    if(!testId) testId=await resolveTestId(db,r,student);
-
-    const total=Number(r.total_marks||r.total_questions||0);
-    const score=Number(r.score??r.correct_answers??0);
-    document.getElementById('reviewMeta').innerHTML=
-      `<b>${esc(testLabel(r))}</b><br>तारीख: ${formatDMY(document.getElementById('date').value)} &nbsp; | &nbsp; अंक: <b>${score}/${total}</b>`;
-
-    if(!testId){
-      qbox.innerHTML='<div class="empty">इस Result का test ID नहीं मिला, इसलिए प्रश्नपत्र Review उपलब्ध नहीं है।</div>';
-      return;
-    }
-
-    // The question paper belongs to the test.
-    const {data:tq,error:tqError}=await db.from('test_questions')
-      .select('question_id,question_order')
-      .eq('test_id',testId)
-      .order('question_order',{ascending:true});
-    if(tqError) throw tqError;
-
-    const tqRows=tq||[];
-    if(!tqRows.length){
-      qbox.innerHTML='<div class="empty">इस Test के प्रश्न उपलब्ध नहीं हैं।</div>';
-      return;
-    }
-
-    // Answers belong to the exact attempt, not directly to student_id/test_id.
-    let answerRows=[];
-    if(attemptId){
-      const {data:ans,error:ansError}=await db.from('student_answers')
-        .select('question_id,selected_option,is_correct')
-        .eq('attempt_id',attemptId);
-      if(ansError) throw ansError;
-      answerRows=ans||[];
-    }
-
-    const answers=new Map(answerRows.map(a=>[String(a.question_id),a]));
-    const ids=tqRows.map(x=>x.question_id);
-
-    const {data:qData,error:qError}=await db.from('questions')
-      .select('id,question_text,option_a,option_b,option_c,option_d,correct_option,chapter_number,chapter_name,explanation,hint,marks')
-      .in('id',ids);
-    if(qError) throw qError;
-
-    const byId=new Map((qData||[]).map(q=>[String(q.id),q]));
-    const questions=tqRows.map(x=>byId.get(String(x.question_id))).filter(Boolean);
-
-    if(!questions.length){
-      qbox.innerHTML='<div class="empty">इस Test के प्रश्न उपलब्ध नहीं हैं।</div>';
-      return;
-    }
-
+    if(!questions.length){qbox.innerHTML='<div class="empty">इस Test के प्रश्न उपलब्ध नहीं हैं।</div>';return;}
     qbox.innerHTML=questions.map((q,i)=>{
       const a=answers.get(String(q.id));
-      const attempted=a?.selected_option!==null &&
-        a?.selected_option!==undefined &&
-        String(a.selected_option).trim()!=='';
+      const attempted=a?.selected_option!==null && a?.selected_option!==undefined && String(a.selected_option).trim()!=='';
       const isCorrect=a?.is_correct===true;
       const your=attempted?String(a.selected_option).trim():'उत्तर नहीं दिया';
-      const options=[['A',q.option_a],['B',q.option_b],['C',q.option_c],['D',q.option_d]]
-        .filter(x=>x[1]!=null&&String(x[1]).trim()!=='');
-      const correct=String(q.correct_option||'').trim();
-
-      return `<div class="q">
-        <div class="qno">प्रश्न ${i+1}${q.chapter_name?' • '+esc(q.chapter_name):''}</div>
-        <div class="qtext">${esc(q.question_text)}</div>
-        ${options.length?`<div class="meta" style="margin:6px 0">
-          ${options.map(x=>`<div><b>${x[0]}.</b> ${esc(x[1])}</div>`).join('')}
-        </div>`:''}
-        <div class="ans ${isCorrect?'correct':'wrong'}">
-          आपका उत्तर: <b>${esc(your)}</b>
-          ${correct?` &nbsp;|&nbsp; सही उत्तर: <b>${esc(correct)}</b>`:''}
-        </div>
-        ${q.explanation?`<div class="meta">व्याख्या: ${esc(q.explanation)}</div>`:''}
-      </div>`;
+      const options=[['A',q.option_a],['B',q.option_b],['C',q.option_c],['D',q.option_d]].filter(x=>x[1]!=null&&String(x[1]).trim()!=='');
+      return `<div class="q"><div class="qno">प्रश्न ${i+1}${q.chapter_name?' • '+esc(q.chapter_name):''}</div><div class="qtext">${esc(q.question_text)}</div>${options.length?`<div class="meta" style="margin:6px 0">${options.map(x=>`<div><b>${x[0]}.</b> ${esc(x[1])}</div>`).join('')}</div>`:''}<div class="ans ${isCorrect?'correct':'wrong'}">आपका उत्तर: ${isCorrect?'✅':'❌'} ${esc(your)}</div><div class="ans correct">सही उत्तर: ✅ ${esc(q.correct_option)}</div>${q.explanation?`<div class="meta" style="margin-top:7px"><b>व्याख्या:</b> ${esc(q.explanation)}</div>`:''}</div>`;
     }).join('');
-  }catch(e){
-    console.error('Previous-result review error:',e);
-    qbox.innerHTML=`<div class="empty" style="color:#a33">❌ प्रश्नपत्र Review नहीं हो सका।<br>${esc(e?.message||e)}</div>`;
+  }catch(err){
+    console.error('Review Supabase Error:',err);
+    qbox.innerHTML=`<div class="empty" style="color:#a33">❌ प्रश्नपत्र Review नहीं हो सका।<br><small>${esc(err.message||err)}</small></div>`;
   }
 }
 
