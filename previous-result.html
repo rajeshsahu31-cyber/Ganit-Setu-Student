@@ -355,57 +355,33 @@ async function openReview(index){
       return;
     }
 
-    // Result RPC पहले से exact attempt_id देता है।
-    // Review में date से दोबारा attempt खोजने के बजाय उसी attempt को इस्तेमाल करें।
-    const attemptId=Number(r.attempt_id);
-    if(!Number.isFinite(attemptId) || attemptId<=0){
-      qbox.innerHTML='<div class="empty">इस Result का exact attempt ID उपलब्ध नहीं है, इसलिए Review उपलब्ध नहीं है।</div>';
+    // Review के लिए Result RPC से मिला exact attempt_id इस्तेमाल करें।
+    // test_attempts / test_questions / student_answers पर browser-side SELECT
+    // निर्भर नहीं करेंगे; secure SECURITY DEFINER RPC पूरा review data लौटाएगा।
+    const attemptId=Number(r.attempt_id||0);
+    if(!attemptId){
+      qbox.innerHTML='<div class="empty">इस Result का Attempt ID उपलब्ध नहीं है, इसलिए प्रश्नपत्र Review उपलब्ध नहीं है।</div>';
       return;
     }
 
-    const attempt={id:attemptId,test_id:testId};
+    const {data:reviewRows,error:reviewError}=await db.rpc('get_ganit_test_review',{
+      p_student_code:studentCode(),
+      p_attempt_id:attemptId
+    });
 
-    const [tqRes,ansRes]=await Promise.all([
-      db.from('test_questions')
-        .select('question_id,question_order')
-        .eq('test_id',testId)
-        .order('question_order',{ascending:true}),
-      db.from('student_answers')
-        .select('question_id,selected_option,is_correct')
-        .eq('attempt_id',attempt.id)
-    ]);
+    if(reviewError) throw reviewError;
 
-    if(tqRes.error) throw tqRes.error;
-    if(ansRes.error) throw ansRes.error;
-
-    const tq=tqRes.data||[];
-    const answers=new Map((ansRes.data||[]).map(a=>[String(a.question_id),a]));
-
-    // सामान्य रास्ता: test_questions में जुड़े प्रश्न।
-    // fallback: अगर पुराने test में mapping न हो, तो उसी attempt के answer question IDs।
-    let orderedIds=tq.map(x=>x.question_id).filter(Boolean);
-    if(!orderedIds.length){
-      orderedIds=[...(answers.keys())].map(Number).filter(Number.isFinite);
-    }
-
-    if(!orderedIds.length){
-      qbox.innerHTML='<div class="empty">इस Test के प्रश्न उपलब्ध नहीं हैं।</div>';
+    const rows=Array.isArray(reviewRows)?reviewRows:[];
+    if(!rows.length){
+      qbox.innerHTML='<div class="empty">इस Attempt के प्रश्न उपलब्ध नहीं हैं।</div>';
       return;
     }
 
-    const {data:qData,error:qError}=await db.from('questions')
-      .select('id,question_text,option_a,option_b,option_c,option_d,correct_option,chapter_number,chapter_name,explanation,hint,marks')
-      .in('id',orderedIds);
-
-    if(qError) throw qError;
-
-    const byId=new Map((qData||[]).map(q=>[String(q.id),q]));
-    const questions=orderedIds.map(id=>byId.get(String(id))).filter(Boolean);
-
-    if(!questions.length){
-      qbox.innerHTML='<div class="empty">इस Test के प्रश्न उपलब्ध नहीं हैं।</div>';
-      return;
-    }
+    const questions=rows;
+    const answers=new Map(rows.map(q=>[
+      String(q.question_id),
+      {selected_option:q.selected_option,is_correct:q.is_correct}
+    ]));
 
     qbox.innerHTML=questions.map((q,i)=>{
       const a=answers.get(String(q.id));
