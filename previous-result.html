@@ -357,19 +357,45 @@ async function openReview(index){
 
     // पहले इसी student + इसी test का वास्तविक submitted attempt निकालें।
     // student_answers में student_id/test_id नहीं होते; answers attempt_id से जुड़े हैं।
-    const {data:attempt,error:attemptError}=await db.from('test_attempts')
+    // चुनी हुई तारीख वाले इसी Test का attempt लें।
+    // पहले date-range query करें ताकि किसी दूसरी तारीख का latest attempt
+    // गलती से Review में न खुल जाए।
+    const selectedIso = document.getElementById('date').value;
+    const from = `${selectedIso}T00:00:00+05:30`;
+    const to = `${nextDate(selectedIso)}T00:00:00+05:30`;
+
+    let {data:attempts,error:attemptError}=await db.from('test_attempts')
       .select('id,test_id,status,submitted_at')
       .eq('student_id',student.id)
       .eq('test_id',testId)
       .eq('status','submitted')
       .not('submitted_at','is',null)
+      .gte('submitted_at',from)
+      .lt('submitted_at',to)
       .order('submitted_at',{ascending:false})
-      .limit(1)
-      .maybeSingle();
+      .limit(10);
 
     if(attemptError) throw attemptError;
+
+    // कुछ पुराने records में timezone/date filtering अलग format में हो सकती है।
+    // इसलिए safe fallback के रूप में उसी Test के submitted attempts में
+    // India-date match करें।
+    let attempt = (attempts || [])[0] || null;
+    if(!attempt){
+      const fallback = await db.from('test_attempts')
+        .select('id,test_id,status,submitted_at')
+        .eq('student_id',student.id)
+        .eq('test_id',testId)
+        .eq('status','submitted')
+        .not('submitted_at','is',null)
+        .order('submitted_at',{ascending:false})
+        .limit(50);
+      if(fallback.error) throw fallback.error;
+      attempt = (fallback.data || []).find(a => indiaDateOf(a.submitted_at) === selectedIso) || null;
+    }
+
     if(!attempt?.id){
-      qbox.innerHTML='<div class="empty">इस Test का submitted attempt नहीं मिला, इसलिए Review उपलब्ध नहीं है।</div>';
+      qbox.innerHTML='<div class="empty">इस चुनी हुई तारीख के Test का submitted attempt नहीं मिला, इसलिए Review उपलब्ध नहीं है।</div>';
       return;
     }
 
@@ -393,7 +419,10 @@ async function openReview(index){
     // fallback: अगर पुराने test में mapping न हो, तो उसी attempt के answer question IDs।
     let orderedIds=tq.map(x=>x.question_id).filter(Boolean);
     if(!orderedIds.length){
-      orderedIds=[...(answers.keys())].map(Number).filter(Number.isFinite);
+      // पुराने attempts में test_questions mapping न होने पर
+      // student_answers के question_id से questions निकालें।
+      // ID numeric हो या UUID/string, दोनों को सुरक्षित रखें।
+      orderedIds=[...(answers.keys())].filter(Boolean);
     }
 
     if(!orderedIds.length){
