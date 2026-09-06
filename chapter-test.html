@@ -113,27 +113,23 @@ body{padding-bottom:18px}
 
 </style>
 
-<style id="gs-real-explanation-final-ui">
-.gs-explain-open{
- display:none;width:100%;margin:10px 0 0;padding:11px 13px;border:1px solid #d9d3f5;
- border-radius:12px;background:#f3f0ff;color:#513bbd;
- font:700 15px/1.5 "Noto Sans Devanagari",sans-serif;cursor:pointer;
-}
-.gs-explain-modal{position:fixed;inset:0;background:rgba(17,14,35,.42);display:none;
- align-items:flex-end;justify-content:flex-start;z-index:99999;padding:0 0 12px 12px}
+<style id="gs-final-explanation-logo-fix">
+/* Remove only the header logo; keep the existing Ganit Setu title/alignment. */
+.gs-logo{display:none!important}
+.gs-head-inner{gap:0!important}
+.gs-brand{margin-left:0!important}
+
+/* Explanation button/popup */
+.gs-explain-open{display:none;width:100%;margin:10px 0 0;padding:11px 13px;border:1px solid #d9d3f5;border-radius:12px;background:#f3f0ff;color:#513bbd;font:700 15px/1.5 "Noto Sans Devanagari",sans-serif;cursor:pointer}
+.gs-explain-modal{position:fixed;inset:0;background:rgba(17,14,35,.42);display:none;align-items:flex-end;justify-content:flex-start;z-index:99999;padding:0 0 12px 12px}
 .gs-explain-modal.show{display:flex}
-.gs-explain-panel{width:min(92vw,560px);max-height:76vh;overflow:auto;background:#fff;
- border-radius:18px;box-shadow:0 14px 42px rgba(20,16,50,.25);padding:16px}
-.gs-explain-title{display:flex;justify-content:space-between;align-items:center;
- font:800 18px/1.4 "Noto Sans Devanagari",sans-serif;color:#33266f;margin-bottom:10px}
+.gs-explain-panel{width:min(92vw,560px);max-height:76vh;overflow:auto;background:#fff;border-radius:18px;box-shadow:0 14px 42px rgba(20,16,50,.25);padding:16px}
+.gs-explain-title{display:flex;justify-content:space-between;align-items:center;font:800 18px/1.4 "Noto Sans Devanagari",sans-serif;color:#33266f;margin-bottom:10px}
 .gs-explain-close{border:0;background:#eeeafa;color:#513bbd;border-radius:10px;width:35px;height:35px;font-size:21px}
 .gs-explain-body{font:500 16px/1.9 "Noto Sans Devanagari",sans-serif;color:#2d3040;white-space:pre-wrap}
 .gs-question-text{font-size:18px!important;line-height:1.85!important}
 .option-btn{font-size:15.5px!important;line-height:1.75!important}
-@media(max-width:480px){
- .gs-question-text{font-size:17px!important}.option-btn{font-size:15px!important}
- .gs-explain-body{font-size:15.5px;line-height:1.9}
-}
+@media(max-width:480px){.gs-question-text{font-size:17px!important}.option-btn{font-size:15px!important}.gs-explain-body{font-size:15.5px;line-height:1.9}}
 </style>
 </head>
 <body>
